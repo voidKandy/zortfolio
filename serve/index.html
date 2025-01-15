@@ -4,51 +4,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Web Page</title>
+
+    <!-- HTMX Stuff -->
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <script src="https://unpkg.com/hyperscript.org@0.9.13"></script>
+
+    <!-- Web Components -->
+    <script src="components/routesNav.js"></script>
+    <script src="components/darkModeButton.js"></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles/crt.css">
+    <link rel="stylesheet" href="styles/global.css">
+
+    <title>voidkandy.space</title>
+
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
+        #frame {
             display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-
-        .container {
-            text-align: center;
-            background-color: #fff;
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        h1 {
-            color: #333;
-        }
-
-        p {
-            color: #666;
-        }
-
-        a {
-            color: #007BFF;
-            text-decoration: none;
-        }
-
-        a:hover {
-            text-decoration: underline;
+            flex-direction: column;
+            align-content: center;
         }
     </style>
 </head>
 
-<body>
-    <div class="container">
-        <h1>Welcome to My Website</h1>
-        <p>This is a simple HTML page generated for you.</p>
-        <a href="#">Learn More</a>
+<body class="crt">
+    <div id="frame" class="box">
+        <routes-nav routes="home, about, settings" target="#route-content"> </routes-nav>
+        <div id="route-content"></div>
     </div>
 </body>
 

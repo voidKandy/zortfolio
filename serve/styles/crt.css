@@ -1,0 +1,72 @@
+:root {
+    /* --flicker-speed: .001s; */
+    --flicker-opacity-min: 0.2;
+    --flicker-opacity-max: 0.9;
+    --shadow-intensity: 1px;
+    --shadow-speed: 2s;
+}
+
+/* @keyframes flicker { */
+/**/
+/*     0%, */
+/*     100% { */
+/*         opacity: var(--flicker-opacity-min); */
+/*     } */
+/**/
+/*     50% { */
+/*         opacity: var(--flicker-opacity-max); */
+/*     } */
+/* } */
+
+@keyframes textShadow {
+
+    0%,
+    100% {
+        text-shadow: 0 var(--shadow-intensity) 1px rgba(0, 0, 0, 0.5),
+            0 calc(-1 * var(--shadow-intensity)) 1px rgba(209, 140, 12, 0.3),
+            0 0 3px;
+    }
+
+    50% {
+        text-shadow: var(--shadow-intensity) 0 1px rgba(0, 0, 0, 0.5),
+            calc(-1 * var(--shadow-intensity)) 0 1px rgba(209, 140, 12, 0.3),
+            0 0 3px;
+    }
+}
+
+/* .crt::after { */
+/*     animation: flicker var(--flicker-speed) infinite ease-in-out; */
+/* } */
+
+.crt::after {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: rgba(18, 16, 16, 0.1);
+    opacity: 0;
+    z-index: 2;
+    pointer-events: none;
+    /* animation: flicker var(--flicker-speed) infinite ease-in-out; */
+}
+
+.crt::before {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    z-index: 2;
+    background-size: 100% 2px, 3px 100%;
+    pointer-events: none;
+}
+
+.crt {
+    animation: textShadow var(--shadow-speed) infinite ease-in-out;
+}
