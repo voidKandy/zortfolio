@@ -6,14 +6,12 @@
     --light-color: #2c2c2c;
     --light-border: #000000;
     --light-button: #d1c4b6;
-    /* --light-code: tomato; */
 
 
     --dark-bg: #2c2c2c;
     --dark-color: #d1c4b6;
-    --dark-border: #ffffff;
+    --dark-border: #e8dcd3;
     --dark-button: #2c2c2c;
-    /* --dark-code: gold; */
 
     --button-hover: #fdb571;
     --box-shadow-color: var(--light-border);
@@ -130,6 +128,7 @@ h2 {
 }
 
 .route-button {
-    background-color: red;
+    background-color: var(--button-hover);
+    filter: saturate(500%);
 
 }

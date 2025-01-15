@@ -30,9 +30,10 @@
                 button.setAttribute("hx-swap", swap);
 
                 button.addEventListener("htmx:xhr:loadend", () => {
-                    console.log(`${route} loadend`);
-                    this.prevRoute = this.updateCurrentRoute(route);
-                    this.updateButtonStyles(route);
+                    if (this.currentRoute != route) {
+                        this.prevRoute = this.updateCurrentRoute(route);
+                        this.updateButtonStyles();
+                    }
                 });
 
                 this.routeButtonMap.set(route, button);
@@ -46,13 +47,14 @@
 
             document.addEventListener('DOMContentLoaded', () => {
                 if (this.currentRoute == null) {
-                    console.log("setting route to default")
                     this.updateCurrentRoute(defaultRoute);
                 }
 
                 if (this.prevRoute != this.currentRoute) {
                     this.sendClickToButton(this.currentRoute);
                 }
+
+                this.updateButtonStyles();
 
             })
 
@@ -72,18 +74,13 @@
         /**
          * This triggers after htmx:xhr:loadend, which means it triggers right after any of the route buttons are 
          * clicked 
-         * @param {string} activeRoute - which button will be updated
          * */
-        updateButtonStyles(activeRoute) {
+        updateButtonStyles() {
             const buttons = this.routeButtonMap.values();
-            console.log("updating styles");
             buttons.forEach(button => {
-                console.log(button);
-                if (button.textContent === activeRoute) {
-                    console.log("setting");
-                    button.textContent = `* ${activeRoute}`;  // Prepend a '*' to active route
+                if (button.textContent === this.currentRoute) {
+                    button.textContent = `* ${this.currentRoute}`;  // Prepend a '*' to active route
                 } else {
-                    console.log("removing");
                     button.textContent = button.textContent.replace("* ", "");  // Remove '*' from inactive routes
                 }
             });
@@ -97,7 +94,6 @@
                 return;
             }
 
-            console.log("clicking ", route);
             b.click();
 
 

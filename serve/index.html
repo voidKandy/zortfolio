@@ -24,13 +24,22 @@
             display: flex;
             flex-direction: column;
             align-content: center;
+            min-width: 50vw;
+            min-height: 80vh;
         }
     </style>
 </head>
 
 <body class="crt">
     <div id="frame" class="box">
-        <routes-nav routes="home, about, settings" target="#route-content"> </routes-nav>
+        <div style="display: flex;
+                flex-direction:row;
+                justify-content:space-between;
+                ">
+            <routes-nav routes="home, about, settings" target="#route-content"> </routes-nav>
+            <dark-mode-button defaultDark="false" lightModeText="Dark Mode" darkModeText="Light Mode">
+            </dark-mode-button>
+        </div>
         <div id="route-content"></div>
     </div>
 </body>
