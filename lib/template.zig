@@ -85,14 +85,14 @@ pub const Lexer = struct {
         var current_byte: ?u8 = null;
 
         outer: while (self.progress()) |c| {
-            std.log.warn("current: {c}\n", .{c});
+            // std.log.warn("current: {c}\n", .{c});
             try buffer.append(c);
             current_byte = c;
 
             const next = self.peek_next() orelse break;
             switch (next.*) {
                 MARKER_OPEN[0] => {
-                    std.log.warn("matches marker open\n", .{});
+                    // std.log.warn("matches marker open\n", .{});
                     current_byte = self.progress();
                     for (1..MARKER_OPEN.len) |i| {
                         if (self.peek_next().?.* == MARKER_OPEN[i]) {
@@ -108,21 +108,21 @@ pub const Lexer = struct {
                     }
 
                     var block_token = try Token.from_array_list(&buffer, TokenType.Block);
-                    std.log.warn("adding token with content: {s}\n", .{block_token.content});
+                    // std.log.warn("adding token with content: {s}\n", .{block_token.content});
                     tokens.prepend(try block_token.into_node(allocator));
 
                     var marker_token = try Token.from_const_array(MARKER_OPEN, TokenType.MarkerOpen, allocator);
-                    std.log.warn("Adding open marker token\n", .{});
+                    // std.log.warn("Adding open marker token\n", .{});
                     prev_token = &marker_token.typ;
                     tokens.prepend(try marker_token.into_node(allocator));
                     current_byte = self.progress();
                 },
 
                 MARKER_CLOSE[0] => {
-                    std.log.warn("matches marker close", .{});
+                    // std.log.warn("matches marker close", .{});
                     current_byte = self.progress();
                     for (1..MARKER_CLOSE.len) |i| {
-                        std.log.warn("got: {c}, expecting {c}\n", .{ self.peek_next().?.*, MARKER_CLOSE[i] });
+                        // std.log.warn("got: {c}, expecting {c}\n", .{ self.peek_next().?.*, MARKER_CLOSE[i] });
                         if (self.peek_next().?.* == MARKER_CLOSE[i]) {
                             current_byte = self.progress();
                             try buffer.append(current_byte.?);
@@ -144,17 +144,17 @@ pub const Lexer = struct {
                         break :blk TokenType.Block;
                     };
                     var token = try Token.from_array_list(&buffer, typ);
-                    std.log.warn("adding token with content: {s}\n", .{token.content});
+                    // std.log.warn("adding token with content: {s}\n", .{token.content});
                     tokens.prepend(try token.into_node(allocator));
 
                     var marker_token = try Token.from_const_array(MARKER_CLOSE, TokenType.MarkerClose, allocator);
-                    std.log.warn("adding marker close\n", .{});
+                    // std.log.warn("adding marker close\n", .{});
                     prev_token = &marker_token.typ;
                     tokens.prepend(try marker_token.into_node(allocator));
                     current_byte = self.progress();
                 },
                 else => {
-                    std.log.warn("matches none\nbuffer: [{s}]\n", .{buffer.items});
+                    // std.log.warn("matches none\nbuffer: [{s}]\n", .{buffer.items});
                 },
             }
         }
@@ -169,7 +169,7 @@ pub const Lexer = struct {
                 break :blk TokenType.Block;
             };
             var token = try Token.from_array_list(&buffer, typ);
-            std.log.warn("adding final token with content: {s}\n", .{token.content});
+            // std.log.warn("adding final token with content: {s}\n", .{token.content});
             tokens.prepend(try token.into_node(allocator));
         }
 
@@ -180,34 +180,64 @@ pub const Lexer = struct {
 /// This is the Template struct
 /// It contains everything you need for rendering a piece of HTML
 fn Template(
+    /// The type to be used to render the template
+    /// + All of it's fields must be []u8
     comptime Context: type,
     /// the path of the file can be known at compile time
     /// and so too can it's contents
     comptime Path: []const u8,
 ) type {
-    const FileSize: comptime_int = @as(comptime_int, @embedFile(Path).len);
+    const TemplateFileContent = @embedFile(Path);
+    // const AccessMap = std.StringHashMap(ArrayList(u8));
+    const ContextInfo = @typeInfo(Context);
 
     return struct {
         const Self = @This();
         context: Context,
-        content: *const [FileSize:0]u8,
         allocator: std.mem.Allocator,
 
         const Error = error{};
 
         fn init(ctx: Context, allocator: std.mem.Allocator) !Self {
-            const file_content = @embedFile(Path);
             return .{
                 .context = ctx,
-                .content = file_content,
                 .allocator = allocator,
             };
         }
 
+        fn deinit(self: Self) void {
+            self.access_map.deinit();
+        }
+
+        fn access_field(
+            comptime fieldname: []const u8,
+            allocator: std.mem.Allocator,
+            ctx: Context,
+        )
+        // []u8
+        std.mem.Allocator.Error!ArrayList(u8) {
+            var list = ArrayList(u8).init(allocator);
+            const field = @field(ctx, fieldname);
+
+            try list.ensureTotalCapacity(field.len);
+
+            var temp: [1024]u8 = undefined;
+            const mutableSlice: []u8 = temp[0..field.len];
+
+            std.mem.copyForwards(u8, mutableSlice, field);
+
+            try list.appendSlice(mutableSlice);
+
+            std.log.warn("returning: {s}\n", .{mutableSlice});
+            return list;
+        }
+
         fn render(self: *Self) !ArrayList(u8) {
             var buffer = ArrayList(u8).init(self.allocator);
-            var lexer = Lexer.init(self.content[0..]);
+            var lexer = Lexer.init(TemplateFileContent[0..]);
             var tokens: Tokens = try lexer.process_input(self.allocator);
+            // var access_map = try self.create_access_map();
+            // defer access_map.deinit();
 
             while (tokens.pop()) |t| {
                 defer self.allocator.destroy(t);
@@ -217,38 +247,49 @@ fn Template(
                         try buffer.appendSlice(t.data.content);
                     },
                     TokenType.ExeString => {
-                        // const execute = try access(&self.context, t.data);
-                        // try buffer.appendSlice(execute);
+                        var alloc_buffer: [1000]u8 = undefined;
+                        var fba = std.heap.FixedBufferAllocator.init(&alloc_buffer);
+                        const allocator = fba.allocator();
+
+                        const lookup = std.mem.trim(u8, t.data.content, "\n .");
+                        std.log.warn("trying lookup: [{s}]\n", .{lookup});
+
+                        inline for (ContextInfo.Struct.fields) |f| {
+                            if (std.mem.eql(u8, f.name, lookup)) {
+                                var val = try Self.access_field(f.name, allocator, self.context);
+                                defer val.deinit();
+
+                                std.log.warn("got val: {s}", .{val.items});
+                                try buffer.appendSlice(try val.toOwnedSlice());
+                            }
+                        }
+                        // const val = try Self.access_field(f.name, self.allocator, self.context);
+                        // std.log.warn("inserting key: [{s}]\nval: {s}", .{ f.name, val.items });
+                        // try map.put(f.name, val);
+
+                        // var val: ArrayList(u8) = access_map.get(lookup) orelse {
+                        //     std.log.warn("could not get val from access map\n", .{});
+                        //     continue;
+                        // };
                     },
                     else => {},
                 }
             }
             return buffer;
         }
-
-        fn access(ctx: *Context, token: Token) ![]u8 {
-            if (token.typ == TokenType.ExeString) {
-                const info = @typeInfo(Context);
-                inline for (info.Struct.fields) |f| {
-                    const is = std.mem.eql(u8, f.name, token.content[2..]);
-                    std.log.warn("{s} and {s} are equal: {any}\n", .{ f.name, token.content[2..], is });
-                    _ = @field(ctx, f.name);
-                }
-                var buffer: [1000]u8 = undefined;
-                const mutableSlice: []u8 = buffer[0..9];
-                std.mem.copyForwards(u8, mutableSlice, " Content ");
-                return mutableSlice;
-            } else {
-                return error.NotFound;
-            }
-        }
     };
 }
-const Test = struct { field: u8 };
+
+const Test = struct { field: []const u8 };
 const TestTemplate = Template(Test, "test/test.html");
 test "read test" {
     const allocator = std.testing.allocator;
-    var template = try TestTemplate.init(Test{ .field = 8 }, allocator);
+    var template = try TestTemplate.init(Test{ .field = "mom" }, allocator);
+
+    // var map = try template.create_access_map();
+    // defer map.deinit();
+
+    // std.log.warn("got access map: {any}\n", .{map});
 
     const render = try template.render();
     defer render.deinit();
