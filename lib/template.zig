@@ -179,7 +179,7 @@ pub const Lexer = struct {
 
 /// This is the Template struct
 /// It contains everything you need for rendering a piece of HTML
-fn Template(
+pub fn Template(
     /// The type to be used to render the template
     /// + All of it's fields must be []u8
     comptime Context: type,
@@ -198,24 +198,18 @@ fn Template(
 
         const Error = error{};
 
-        fn init(ctx: Context, allocator: std.mem.Allocator) !Self {
+        pub fn init(ctx: Context, allocator: std.mem.Allocator) !Self {
             return .{
                 .context = ctx,
                 .allocator = allocator,
             };
         }
 
-        fn deinit(self: Self) void {
-            self.access_map.deinit();
-        }
-
         fn access_field(
             comptime fieldname: []const u8,
             allocator: std.mem.Allocator,
             ctx: Context,
-        )
-        // []u8
-        std.mem.Allocator.Error!ArrayList(u8) {
+        ) std.mem.Allocator.Error!ArrayList(u8) {
             var list = ArrayList(u8).init(allocator);
             const field = @field(ctx, fieldname);
 
@@ -232,7 +226,7 @@ fn Template(
             return list;
         }
 
-        fn render(self: *Self) !ArrayList(u8) {
+        pub fn render(self: *Self) !ArrayList(u8) {
             var buffer = ArrayList(u8).init(self.allocator);
             var lexer = Lexer.init(TemplateFileContent[0..]);
             var tokens: Tokens = try lexer.process_input(self.allocator);

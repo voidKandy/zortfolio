@@ -29,15 +29,17 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const template = b.addModule("template", .{
+        .root_source_file = .{ .cwd_relative = "lib/template.zig" },
+    });
+
     const routes = b.addModule("routes", .{
         .root_source_file = .{ .cwd_relative = "lib/routes.zig" },
     });
 
     routes.*.addImport("zap", zap.module("zap"));
+    routes.*.addImport("template", template);
 
-    const template = b.addModule("template", .{
-        .root_source_file = .{ .cwd_relative = "lib/template.zig" },
-    });
     // This declares intent for the library to be installed into the standard
     // location when the user invokes the "install" step (the default step when
     // running `zig build`).
