@@ -5,7 +5,7 @@ const TokenType = enum {
     Block,
     MarkerOpen,
     MarkerClose,
-    ExeString,
+    Access,
 };
 
 const Token = struct {
@@ -34,14 +34,14 @@ const Token = struct {
 
 const Tokens = std.DoublyLinkedList(Token);
 
-pub const Lexer = struct {
+const Lexer = struct {
     const Self = @This();
     input: []const u8,
     pos: usize,
-    const MARKER_OPEN: []const u8 = "\\\\zz";
-    const MARKER_CLOSE: []const u8 = "zz\\\\";
+    const MARKER_OPEN: []const u8 = "||zz";
+    const MARKER_CLOSE: []const u8 = "zz||";
 
-    pub fn init(input: []const u8) Self {
+    fn init(input: []const u8) Self {
         const l = Lexer{
             .input = input,
             .pos = 0,
@@ -49,13 +49,13 @@ pub const Lexer = struct {
         return l;
     }
 
-    pub fn debug(l: *Self) void {
+    fn debug(l: *Self) void {
         std.log.warn("lexer:\nposition: {d}\nnext_position: {d}\nchar: {c}\ninput: {s}\n", .{ l.pos, l.next_pos, l.ch, l.input });
     }
 
     /// Move forward by one byte
     /// returns current char
-    pub fn progress(self: *Self) ?u8 {
+    fn progress(self: *Self) ?u8 {
         if (self.pos >= self.input.len) {
             return null;
         }
@@ -65,15 +65,15 @@ pub const Lexer = struct {
     }
 
     /// returns an optional pointer to the next char
-    pub fn peek_next(self: *Self) ?*const u8 {
-        if (self.pos + 1 >= self.input.len) {
+    fn peek_next(self: *Self) ?*const u8 {
+        if (self.pos >= self.input.len) {
             return null;
         }
-        return &self.input[self.pos + 1];
+        return &self.input[self.pos];
     }
 
     /// Progresses through input, outputting the head of a linked list of tokens
-    pub fn process_input(
+    fn process_input(
         self: *Self,
         allocator: std.mem.Allocator,
     ) !Tokens {
@@ -85,15 +85,11 @@ pub const Lexer = struct {
         var current_byte: ?u8 = null;
 
         outer: while (self.progress()) |c| {
-            // std.log.warn("current: {c}\n", .{c});
             try buffer.append(c);
             current_byte = c;
 
-            const next = self.peek_next() orelse break;
-            switch (next.*) {
+            switch (c) {
                 MARKER_OPEN[0] => {
-                    // std.log.warn("matches marker open\n", .{});
-                    current_byte = self.progress();
                     for (1..MARKER_OPEN.len) |i| {
                         if (self.peek_next().?.* == MARKER_OPEN[i]) {
                             current_byte = self.progress();
@@ -103,7 +99,7 @@ pub const Lexer = struct {
                         }
                     }
 
-                    for (1..MARKER_OPEN.len) |_| {
+                    for (0..MARKER_OPEN.len) |_| {
                         _ = buffer.pop();
                     }
 
@@ -115,14 +111,11 @@ pub const Lexer = struct {
                     // std.log.warn("Adding open marker token\n", .{});
                     prev_token = &marker_token.typ;
                     tokens.prepend(try marker_token.into_node(allocator));
-                    current_byte = self.progress();
+                    // current_byte = self.progress();
                 },
 
                 MARKER_CLOSE[0] => {
-                    // std.log.warn("matches marker close", .{});
-                    current_byte = self.progress();
                     for (1..MARKER_CLOSE.len) |i| {
-                        // std.log.warn("got: {c}, expecting {c}\n", .{ self.peek_next().?.*, MARKER_CLOSE[i] });
                         if (self.peek_next().?.* == MARKER_CLOSE[i]) {
                             current_byte = self.progress();
                             try buffer.append(current_byte.?);
@@ -131,14 +124,14 @@ pub const Lexer = struct {
                         }
                     }
 
-                    for (1..MARKER_CLOSE.len) |_| {
+                    for (0..MARKER_CLOSE.len) |_| {
                         _ = buffer.pop();
                     }
 
                     const typ = blk: {
                         if (prev_token) |t| {
                             if (t.* == TokenType.MarkerOpen) {
-                                break :blk TokenType.ExeString;
+                                break :blk TokenType.Access;
                             }
                         }
                         break :blk TokenType.Block;
@@ -151,7 +144,6 @@ pub const Lexer = struct {
                     // std.log.warn("adding marker close\n", .{});
                     prev_token = &marker_token.typ;
                     tokens.prepend(try marker_token.into_node(allocator));
-                    current_byte = self.progress();
                 },
                 else => {
                     // std.log.warn("matches none\nbuffer: [{s}]\n", .{buffer.items});
@@ -163,7 +155,7 @@ pub const Lexer = struct {
             const typ = blk: {
                 if (prev_token) |t| {
                     if (t.* == TokenType.MarkerOpen) {
-                        break :blk TokenType.ExeString;
+                        break :blk TokenType.Access;
                     }
                 }
                 break :blk TokenType.Block;
@@ -188,7 +180,6 @@ pub fn Template(
     comptime Path: []const u8,
 ) type {
     const TemplateFileContent = @embedFile(Path);
-    // const AccessMap = std.StringHashMap(ArrayList(u8));
     const ContextInfo = @typeInfo(Context);
 
     return struct {
@@ -222,7 +213,7 @@ pub fn Template(
 
             try list.appendSlice(mutableSlice);
 
-            std.log.warn("returning: {s}\n", .{mutableSlice});
+            // std.log.warn("returning: {s}\n", .{mutableSlice});
             return list;
         }
 
@@ -230,8 +221,6 @@ pub fn Template(
             var buffer = ArrayList(u8).init(self.allocator);
             var lexer = Lexer.init(TemplateFileContent[0..]);
             var tokens: Tokens = try lexer.process_input(self.allocator);
-            // var access_map = try self.create_access_map();
-            // defer access_map.deinit();
 
             while (tokens.pop()) |t| {
                 defer self.allocator.destroy(t);
@@ -240,7 +229,7 @@ pub fn Template(
                     TokenType.Block => {
                         try buffer.appendSlice(t.data.content);
                     },
-                    TokenType.ExeString => {
+                    TokenType.Access => {
                         var alloc_buffer: [1000]u8 = undefined;
                         var fba = std.heap.FixedBufferAllocator.init(&alloc_buffer);
                         const allocator = fba.allocator();
@@ -257,14 +246,6 @@ pub fn Template(
                                 try buffer.appendSlice(try val.toOwnedSlice());
                             }
                         }
-                        // const val = try Self.access_field(f.name, self.allocator, self.context);
-                        // std.log.warn("inserting key: [{s}]\nval: {s}", .{ f.name, val.items });
-                        // try map.put(f.name, val);
-
-                        // var val: ArrayList(u8) = access_map.get(lookup) orelse {
-                        //     std.log.warn("could not get val from access map\n", .{});
-                        //     continue;
-                        // };
                     },
                     else => {},
                 }
@@ -274,19 +255,69 @@ pub fn Template(
     };
 }
 
-const Test = struct { field: []const u8 };
+const Test = struct { field: []const u8, attr: []const u8 };
 const TestTemplate = Template(Test, "test/test.html");
-test "read test" {
+test "render test" {
     const allocator = std.testing.allocator;
-    var template = try TestTemplate.init(Test{ .field = "mom" }, allocator);
-
-    // var map = try template.create_access_map();
-    // defer map.deinit();
-
-    // std.log.warn("got access map: {any}\n", .{map});
+    var template = try TestTemplate.init(Test{ .field = "mom", .attr = "this-attr" }, allocator);
+    const expected =
+        \\<div>
+        \\  mom
+        \\  <div attribute="this-attr">
+        \\  </div>
+    ;
 
     const render = try template.render();
     defer render.deinit();
 
-    std.log.warn("got render: {s}\n", .{render.items});
+    if (!std.mem.eql(u8, expected, render.items)) {
+        std.debug.panic("did not get expected render!\nExpected: {s}\ngot: {s}\n", .{ expected, render.items });
+    }
+}
+
+test "lexing test" {
+    const allocator = std.testing.allocator;
+    const content = @embedFile("test/test.html");
+    var lexer = Lexer.init(content[0..]);
+    var tokens = try lexer.process_input(allocator);
+
+    const expected: [9]struct { content: []const u8, typ: TokenType } = .{ .{
+        .content = "<div>",
+        .typ = TokenType.Block,
+    }, .{
+        .content = "||zz",
+        .typ = TokenType.MarkerOpen,
+    }, .{
+        .content = ".field",
+        .typ = TokenType.Access,
+    }, .{
+        .content = "zz||",
+        .typ = TokenType.MarkerClose,
+    }, .{
+        .content = "<div attribute=\">",
+        .typ = TokenType.Block,
+    }, .{
+        .content = "||zz",
+        .typ = TokenType.MarkerOpen,
+    }, .{
+        .content = ".attr",
+        .typ = TokenType.Access,
+    }, .{
+        .content = "zz||",
+        .typ = TokenType.MarkerClose,
+    }, .{
+        .content = ">\n</div>",
+        .typ = TokenType.Block,
+    } };
+
+    var i: usize = 0;
+    while (tokens.pop()) |t| : (i += 1) {
+        defer allocator.destroy(t);
+        defer allocator.free(t.data.content);
+
+        const trimmed_ex = std.mem.trim(u8, expected[i].content, " ");
+        const trimmed_got = std.mem.trim(u8, t.data.content, " ");
+        try std.testing.expectEqual(trimmed_ex, trimmed_got);
+        try std.testing.expectEqual(expected[i].typ, t.data.typ);
+    }
 }

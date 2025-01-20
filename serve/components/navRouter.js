@@ -1,7 +1,7 @@
 'use strict';
 
 (function() {
-    class RoutesNav extends HTMLElement {
+    class NavRouter extends HTMLElement {
         connectedCallback() {
             this.routesContainer = document.createElement('div');
             this.routesContainer.id = "routes-container"
@@ -10,6 +10,13 @@
             const target = this.target;
             const swap = this.swap;
             const defaultRoute = this.defaultRoute;
+            let currentAttr = this.getAttribute('current');
+            this.currentRoute = currentAttr ? currentAttr.replace(/^\/+/, '') : defaultRoute;
+            
+            if (!routes.includes(this.currentRoute)) {
+                console.error(`Route "${this.currentRoute}" not found. Falling back to default route.`);
+                this.currentRoute = defaultRoute;
+            }
 
             this.prevRoute = null;
 
@@ -28,10 +35,12 @@
                 button.setAttribute("hx-get", `/${route}`);
                 button.setAttribute("hx-target", target);
                 button.setAttribute("hx-swap", swap);
+                button.setAttribute("hx-push-url", "true");
 
                 button.addEventListener("htmx:xhr:loadend", () => {
                     if (this.currentRoute != route) {
-                        this.prevRoute = this.updateCurrentRoute(route);
+                        this.prevRoute = this.currrentRoute;
+                        this.currentRoute = route;
                         this.updateButtonStyles();
                     }
                 });
@@ -60,16 +69,6 @@
 
         }
 
-        /**
-         * updates current route, returning previous
-         * @param {string} route - the route to set as current
-         * @returns {string | null}
-         * */
-        updateCurrentRoute(route) {
-            const prev = localStorage.getItem('route');
-            localStorage.setItem('route', route);
-            return prev;
-        }
 
         /**
          * This triggers after htmx:xhr:loadend, which means it triggers right after any of the route buttons are 
@@ -88,20 +87,13 @@
 
         sendClickToButton(route) {
             const b = this.routeButtonMap.get(route);
-
             if (!b) {
                 console.log("could not get button from route: ", route);
                 return;
             }
-
             b.click();
-
-
         }
 
-        get currentRoute() {
-            return localStorage.getItem('route');
-        }
 
         get routes() {
             const routesStr = this.getAttribute('routes') || "";
@@ -128,5 +120,5 @@
     }
 
     // let the browser know about the custom element
-    customElements.define('routes-nav', RoutesNav);
+    customElements.define('nav-router', NavRouter);
 })();

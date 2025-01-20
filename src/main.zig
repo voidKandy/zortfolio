@@ -1,8 +1,97 @@
 const std = @import("std");
 const zap = @import("zap");
-const routes = @import("routes");
-const ArrayList = std.ArrayList;
-const print = std.debug.print;
+const template = @import("template");
+
+pub const Home = struct { field: []const u8 };
+pub const HomeTemplate = template.Template(Home, "pages/home.html");
+pub fn home_handler(ctx: *HomeTemplate, r: zap.Request) void {
+    var body = ctx.render() catch |err| {
+        std.debug.panic("Failed to render template: {any}", .{err});
+    };
+    defer body.deinit();
+
+    r.sendBody(body.items) catch return;
+}
+
+pub const About = struct {};
+pub const AboutTemplate = template.Template(About, "pages/about.html");
+pub fn about_handler(ctx: *AboutTemplate, r: zap.Request) void {
+    var body = ctx.render() catch |err| {
+        std.debug.panic("Failed to render template: {any}", .{err});
+    };
+    defer body.deinit();
+
+    r.sendBody(body.items) catch return;
+}
+
+pub const HydrationTemplate = template.Template(HydrationMiddleware.HydrationInfo, "pages/index.html");
+
+// just a way to share our allocator via callback
+const SharedAllocator = struct {
+    // static
+    var allocator: std.mem.Allocator = undefined;
+
+    const Self = @This();
+
+    // just a convenience function
+    pub fn init(a: std.mem.Allocator) void {
+        allocator = a;
+    }
+
+    // static function we can pass to the listener later
+    pub fn getAllocator() std.mem.Allocator {
+        return allocator;
+    }
+};
+
+// create a combined context struct
+// NOTE: context struct members need to be optionals which default to null!!!
+const Context = struct {
+    hydration: ?HydrationMiddleware.HydrationInfo = null,
+};
+
+// we create a Handler type based on our Context
+const Handler = zap.Middleware.Handler(Context);
+
+const HydrationMiddleware = struct {
+    handler: Handler,
+
+    const Self = @This();
+
+    const HydrationInfo = struct {
+        path: []const u8 = undefined,
+        query: []const u8 = undefined,
+    };
+
+    pub fn init(other: ?*Handler) Self {
+        return .{
+            .handler = Handler.init(onRequest, other),
+        };
+    }
+
+    pub fn getHandler(self: *Self) *Handler {
+        return &self.handler;
+    }
+
+    pub fn onRequest(handler: *Handler, r: zap.Request, context: *Context) bool {
+        const self: *Self = @fieldParentPtr("handler", handler);
+        _ = self;
+
+        if (r.getHeader("hx-request")) |hx_req| {
+            _ = hx_req;
+            // We dont need to hydrate the page if the req came through htmx
+        } else {
+            context.hydration = HydrationInfo{
+                .path = r.path orelse "/",
+                .query = r.query orelse "",
+            };
+
+            std.debug.print("\n\nHydration middleware: set context {any}\n\n", .{context.hydration});
+        }
+
+        return handler.handleOther(r, context);
+    }
+};
 
 fn not_found_handler(r: zap.Request) void {
     r.setStatus(zap.StatusCode.not_found);
@@ -24,36 +113,87 @@ fn on_request_verbose(r: zap.Request) void {
     r.sendBody("<html><body><h1>Hello from ZAP!!!</h1></body></html>") catch return;
 }
 
+const BoundHandler = *fn (*const anyopaque, zap.Request) void;
+
+const HtmlEndpoint = struct {
+    handler: Handler,
+    router: *zap.Router,
+    const Self = @This();
+
+    pub fn init(router: *zap.Router, other: ?*Handler) !Self {
+        return .{ .router = router, .handler = Handler.init(onRequest, other) };
+    }
+
+    pub fn getHandler(self: *Self) *Handler {
+        return &self.handler;
+    }
+
+    pub fn onRequest(handler: *Handler, r: zap.Request, context: *Context) bool {
+        const self: *Self = @fieldParentPtr("handler", handler);
+
+        const allocator = SharedAllocator.getAllocator();
+        if (context.hydration) |h| {
+            var tmp = HydrationTemplate.init(h, allocator) catch unreachable;
+            const render = tmp.render() catch unreachable;
+            std.debug.assert(r.isFinished() == false);
+            std.log.warn("Path: {s}\nQuery: {s}", .{
+                h.path,
+                h.query,
+            });
+            r.sendBody(render.items) catch unreachable;
+            std.debug.assert(r.isFinished() == true);
+            return true;
+        }
+
+        const func = self.router.*.on_request_handler();
+        func(r);
+
+        return true;
+    }
+};
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{
         .thread_safe = true,
     }){};
     const allocator = gpa.allocator();
+    SharedAllocator.init(allocator);
 
     var router = zap.Router.init(allocator, .{ .not_found = not_found_handler });
     defer router.deinit();
-
-    var home = try routes.HomeTemplate.init(routes.Home{ .field = "value" }, allocator);
-    var about = try routes.AboutTemplate.init(routes.About{}, allocator);
+    var home = try HomeTemplate.init(Home{ .field = "value" }, allocator);
+    var about = try AboutTemplate.init(About{}, allocator);
 
     try router.handle_func_unbound("/", on_request_verbose);
 
-    try router.handle_func("/home", &home, &routes.home_handler);
-    try router.handle_func("/about", &about, &routes.about_handler);
+    try router.handle_func("/home", &home, &home_handler);
+    try router.handle_func("/about", &about, &about_handler);
 
-    var listener = zap.HttpListener.init(.{
-        .port = 3000,
-        .on_request = router.on_request_handler(),
-        .public_folder = "serve",
-        .log = true,
-    });
-    try listener.listen();
+    var htmlHandler = try HtmlEndpoint.init(&router, null);
 
-    std.debug.print("Listening on 0.0.0.0:3000\n", .{});
+    var hydrationHandler = HydrationMiddleware.init(htmlHandler.getHandler());
 
-    // start worker threads
+    var listener = try zap.Middleware.Listener(Context).init(
+        .{
+            .on_request = null, // must be null for middleware
+            .public_folder = "serve",
+            .port = 3000,
+            .log = true,
+            .max_clients = 100000,
+        },
+        hydrationHandler.getHandler(),
+        SharedAllocator.getAllocator,
+    );
+    zap.enableDebugLog();
+    listener.listen() catch |err| {
+        std.debug.print("\nLISTEN ERROR: {any}\n", .{err});
+        return;
+    };
+
+    std.debug.print("Visit me on http://127.0.0.1:3000\n", .{});
+
     zap.start(.{
         .threads = 2,
-        .workers = 2,
+        .workers = 1,
     });
 }
