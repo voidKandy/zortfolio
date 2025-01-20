@@ -1,31 +1,9 @@
 const std = @import("std");
 const zap = @import("zap");
-const template = @import("template");
-
-pub const Home = struct { field: []const u8 };
-pub const HomeTemplate = template.Template(Home, "pages/home.html");
-pub fn home_handler(ctx: *HomeTemplate, r: zap.Request) void {
-    var body = ctx.render() catch |err| {
-        std.debug.panic("Failed to render template: {any}", .{err});
-    };
-    defer body.deinit();
-
-    r.sendBody(body.items) catch return;
-}
-
-pub const About = struct {};
-pub const AboutTemplate = template.Template(About, "pages/about.html");
-pub fn about_handler(ctx: *AboutTemplate, r: zap.Request) void {
-    var body = ctx.render() catch |err| {
-        std.debug.panic("Failed to render template: {any}", .{err});
-    };
-    defer body.deinit();
-
-    r.sendBody(body.items) catch return;
-}
+const template = @import("template.zig");
+const routes = @import("routes.zig");
 
 pub const HydrationTemplate = template.Template(HydrationMiddleware.HydrationInfo, "pages/index.html");
-
 // just a way to share our allocator via callback
 const SharedAllocator = struct {
     // static
@@ -77,16 +55,14 @@ const HydrationMiddleware = struct {
         const self: *Self = @fieldParentPtr("handler", handler);
         _ = self;
 
-        if (r.getHeader("hx-request")) |hx_req| {
-            _ = hx_req;
-            // We dont need to hydrate the page if the req came through htmx
-        } else {
+        // We dont need to hydrate the page if the req came through htmx
+        if (r.getHeader("hx-request") == null) {
             context.hydration = HydrationInfo{
                 .path = r.path orelse "/",
                 .query = r.query orelse "",
             };
 
-            std.debug.print("\n\nHydration middleware: set context {any}\n\n", .{context.hydration});
+            std.log.debug("\n\nHydration middleware: set context {any}\n\n", .{context.hydration});
         }
 
         return handler.handleOther(r, context);
@@ -112,8 +88,6 @@ fn on_request_verbose(r: zap.Request) void {
     }
     r.sendBody("<html><body><h1>Hello from ZAP!!!</h1></body></html>") catch return;
 }
-
-const BoundHandler = *fn (*const anyopaque, zap.Request) void;
 
 const HtmlEndpoint = struct {
     handler: Handler,
@@ -161,13 +135,13 @@ pub fn main() !void {
 
     var router = zap.Router.init(allocator, .{ .not_found = not_found_handler });
     defer router.deinit();
-    var home = try HomeTemplate.init(Home{ .field = "value" }, allocator);
-    var about = try AboutTemplate.init(About{}, allocator);
+    var home = try routes.HomeTemplate.init(routes.Home{ .field = "value" }, allocator);
+    var about = try routes.AboutTemplate.init(routes.About{}, allocator);
 
     try router.handle_func_unbound("/", on_request_verbose);
 
-    try router.handle_func("/home", &home, &home_handler);
-    try router.handle_func("/about", &about, &about_handler);
+    try router.handle_func("/home", &home, &routes.home_handler);
+    try router.handle_func("/about", &about, &routes.about_handler);
 
     var htmlHandler = try HtmlEndpoint.init(&router, null);
 

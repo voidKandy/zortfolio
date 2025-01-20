@@ -29,16 +29,16 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const template = b.addModule("template", .{
-        .root_source_file = .{ .cwd_relative = "lib/template.zig" },
-    });
+    // const template = b.addModule("template", .{
+    //     .root_source_file = .{ .cwd_relative = "lib/template.zig" },
+    // });
 
-    const routes = b.addModule("routes", .{
-        .root_source_file = .{ .cwd_relative = "lib/routes.zig" },
-    });
-
-    routes.*.addImport("zap", zap.module("zap"));
-    routes.*.addImport("template", template);
+    // const routes = b.addModule("routes", .{
+    //     .root_source_file = .{ .cwd_relative = "lib/routes.zig" },
+    // });
+    //
+    // routes.*.addImport("zap", zap.module("zap"));
+    // routes.*.addImport("template", template);
 
     // This declares intent for the library to be installed into the standard
     // location when the user invokes the "install" step (the default step when
@@ -52,8 +52,8 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    exe.root_module.addImport("routes", routes);
-    exe.root_module.addImport("template", template);
+    // exe.root_module.addImport("routes", routes);
+    // exe.root_module.addImport("template", template);
     exe.root_module.addImport("zap", zap.module("zap"));
 
     // This declares intent for the executable to be installed into the

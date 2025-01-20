@@ -1,6 +1,6 @@
 const std = @import("std");
 const zap = @import("zap");
-const template = @import("template");
+const template = @import("template.zig");
 const print = std.debug.print;
 const ArrayList = std.ArrayList;
 const warn = std.log.warn;
