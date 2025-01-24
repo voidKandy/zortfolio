@@ -1,134 +1,133 @@
 :root {
-    color-scheme: light dark;
-    /* --flicker-speed: .001s; */
+  color-scheme: light dark;
+  /* --flicker-speed: .001s; */
+  --offwhite: #dacebf;
+  --offblack: #333333;
 
-    --light-bg: #d1c4b6;
-    --light-color: #2c2c2c;
-    --light-border: #000000;
-    --light-button: #d1c4b6;
+  --light-bg: #d1c4b6;
+  --light-color: #2c2c2c;
+  --light-border: #000000;
+  --light-button: #d1c4b6;
 
 
-    --dark-bg: #2c2c2c;
-    --dark-color: #d1c4b6;
-    --dark-border: #e8dcd3;
-    --dark-button: #2c2c2c;
+  --dark-bg: #2c2c2c;
+  --dark-color: #d1c4b6;
+  --dark-border: #e8dcd3;
+  --dark-button: #2c2c2c;
 
-    --button-hover: #fdb571;
-    --box-shadow-color: var(--light-border);
+  --primary-orange: #fdb571;
+  --secondary-red: #E3174A;
+  --tertiary-blue: #69a2b0;
+  --box-shadow-color: var(--light-border);
 }
 
 
 
 .dark {
-    color-scheme: dark !important;
-    --box-shadow-color: var(--dark-border);
+  color-scheme: dark !important;
+  --box-shadow-color: var(--dark-border);
 }
 
 
 
 body {
-    font-family: Andale Mono, monospace;
-    background-color: light-dark(var(--light-bg), var(--dark-bg));
-    margin: 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    color-scheme: light;
+  font-family: Andale Mono, monospace;
+  background-color: light-dark(var(--light-bg), var(--dark-bg));
+  color: light-dark(var(--light-color), var(--dark-color));
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* height: 100%; */
+  color-scheme: light;
 }
 
 body.dark .box {
-    box-shadow: 4px 4px var(--light-border) !important;
+  /* box-shadow: 4px 4px var(--light-border) !important; */
 }
 
 body:not(.dark) .box {
-    box-shadow: 4px 4px var(--dark-border) !important;
+  /* box-shadow: 4px 4px var(--dark-border) !important; */
 }
 
 .box {
-    padding: 2rem;
-    margin: 4rem;
-    border-style: solid;
-    border-width: 5px;
-    border-color: light-dark(var(--light-border), var(--dark-border));
+  padding: 2rem;
+  margin: 2rem;
+  border-style: solid;
+  border-width: 5px;
+  border-color: light-dark(var(--light-border), var(--dark-border));
 }
 
 .small-box {
-    padding: 2rem;
-    border-style: double;
-    border-width: 5px;
-    border-color: light-dark(var(--light-border), var(--dark-border));
-    margin: 4rem;
+  padding: 2rem;
+  border-style: double;
+  border-width: 5px;
+  border-color: light-dark(var(--light-border), var(--dark-border));
+  margin: 4rem;
 }
 
 /* Apply polka dot pattern to the margins */
 body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: -1;
-    background-size: 8px 8px;
-    /* Adjust size of dots */
-    background-repeat: repeat;
-    pointer-events: none;
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  background-size: 8px 8px;
+  /* Adjust size of dots */
+  background-repeat: repeat;
+  pointer-events: none;
 }
 
 body.dark button {
-    box-shadow: 3px 3px var(--dark-border) !important;
+  box-shadow: 3px 3px var(--dark-border) !important;
 }
 
 body.dark button:hover {
-    box-shadow: 2px 2px var(--dark-border) !important;
-    text-shadow:
-        1px 1px 0 var(--light-color);
+  box-shadow: 2px 2px var(--dark-border) !important;
+  text-shadow:
+    1px 1px 0 var(--light-color);
 }
 
 body:not(.dark) button {
-    box-shadow: 3px 3px var(--light-border) !important;
+  box-shadow: 3px 3px var(--light-border) !important;
 }
 
 body:not(.dark) button:hover {
-    box-shadow: 2px 2px var(--light-border) !important;
-    text-shadow:
-        1px 1px 0 var(--dark-color);
+  box-shadow: 2px 2px var(--light-border) !important;
+  text-shadow:
+    1px 1px 0 var(--dark-color);
 }
 
 button {
-    font-weight: bold;
-    border-style: solid;
-    border-width: 2px;
-    padding: .5rem;
-    border-color: light-dark(var(--light-border), var(--dark-border));
-    background-color: light-dark(var(--light-button), var(--dark-button));
-    cursor: pointer;
-    transition: all ease-in-out 200ms;
+  font-weight: bold;
+  border-style: solid;
+  border-width: 2px;
+  padding: .5rem;
+  border-color: light-dark(var(--light-border), var(--dark-border));
+  background-color: light-dark(var(--light-button), var(--dark-button));
+  cursor: pointer;
+  transition: all ease-in-out 200ms;
 }
 
 button:hover {
-    background-color: var(--button-hover);
+  background-color: var(--primary-orange);
 }
 
-h1 {
-    border-bottom: 5px double;
-}
 
-h2 {
-    border-bottom: 3px dotted;
-}
 
 #routes-container {
-    display: flex;
-    flex-direction: row;
-    gap: 1rem;
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
 
 }
 
 .route-button {
-    background-color: var(--button-hover);
-    filter: saturate(500%);
+  background-color: var(--primary-orange);
+  filter: saturate(500%);
 
 }

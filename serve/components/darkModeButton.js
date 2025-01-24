@@ -5,6 +5,7 @@
         connectedCallback() {
             const button = document.createElement("button");
             button.id = "dark-mode-button";
+            button.classList.add('crt');
 
             this.button = button;
 
@@ -12,14 +13,14 @@
                 localStorage.setItem('dark', this.defaultDark ? "true" : "false");
             }
 
-            button.textContent = this.darkIsSet ? this.darkModeText : this.lightModeText;
+            this.button.textContent = this.darkIsSet ? this.darkModeText : this.lightModeText;
 
-            button.addEventListener('click', () => {
+            this.button.addEventListener('click', () => {
                 this.toggleDarkMode();
-                button.textContent = this.darkIsSet ? this.darkModeText : this.lightModeText;
+                this.button.textContent = this.darkIsSet ? this.darkModeText : this.lightModeText;
             });
 
-            this.appendChild(button);
+            this.appendChild(this.button);
 
             this.applyDarkMode();
         }

@@ -135,13 +135,21 @@ pub fn main() !void {
 
     var router = zap.Router.init(allocator, .{ .not_found = not_found_handler });
     defer router.deinit();
-    var home = try routes.HomeTemplate.init(routes.Home{ .field = "value" }, allocator);
+    var home = try routes.HomeTemplate.init(routes.Home{}, allocator);
     var about = try routes.AboutTemplate.init(routes.About{}, allocator);
+
+    const music_info = try routes.Music.init(allocator);
+    defer music_info.deinit(allocator);
+    var music = try routes.MusicTemplate.init(music_info, allocator);
+
+    var info = try routes.InfoTemplate.init(routes.Info{}, allocator);
 
     try router.handle_func_unbound("/", on_request_verbose);
 
-    try router.handle_func("/home", &home, &routes.home_handler);
-    try router.handle_func("/about", &about, &routes.about_handler);
+    try router.handle_func("/Home", &home, &routes.home_handler);
+    try router.handle_func("/About", &about, &routes.about_handler);
+    try router.handle_func("/Music", &music, &routes.music_handler);
+    try router.handle_func("/Info", &info, &routes.info_handler);
 
     var htmlHandler = try HtmlEndpoint.init(&router, null);
 
@@ -170,4 +178,8 @@ pub fn main() !void {
         .threads = 2,
         .workers = 1,
     });
+}
+
+test {
+    std.testing.refAllDecls(@This());
 }

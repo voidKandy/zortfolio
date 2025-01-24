@@ -12,9 +12,16 @@
   <!-- Misc -->
   <script type="module" src="https://md-block.verou.me/md-block.js"></script>
 
+
   <!-- Web Components -->
   <script src="components/navRouter.js"></script>
-  <script src="components/canvasComponent.js"></script>
+  <script src="components/musicDisplay.js"></script>
+  <script src="components/displayBox.js"></script>
+  <script src="components/projectItem.js"></script>
+  <script src="components/workItem.js"></script>
+  <script src="components/easyTable.js"></script>
+  <script src="components/spinningShape.js"></script>
+  <script src="components/colorSquares.js"></script>
   <script src="components/darkModeButton.js"></script>
 
   <!-- Styles -->
@@ -27,25 +34,45 @@
     #frame {
       display: flex;
       flex-direction: column;
+      background-color: light-dark(var(--light-bg), var(--dark-bg));
+      z-index: 2;
       align-content: center;
-      min-width: 50vw;
-      min-height: 80vh;
+      justify-content: space-between;
+      min-width: 80vw;
+      min-height: 100vh;
+    }
+
+    #route-content {
+      /* Prevents it from affecting the height of #frame */
+      flex-grow: 0;
+      /* Keeps content scrollable if it overflows */
+      overflow-y: auto;
+      overflow-x: hidden;
+      height: 100%;
     }
   </style>
 </head>
 
 <body class="crt">
   <div id="frame" class="box">
-    <div style="display: flex;
+    <div>
+      <div style="display: flex;
                   flex-direction:row;
                   justify-content:space-between;
+                  padding-bottom: 1rem;
+                  border-bottom: 1px dashed;
+                  border-color: light-dark(var(--light-border), var(--dark-border));
                   ">
-      <nav-router routes="home, about" target="#route-content" current="||zz .path zz||"> </nav-router>
-      <!-- <dark-mode-button defaultDark="false" lightModeText="Dark Mode" darkModeText="Light Mode"> -->
-      <!-- </dark-mode-button> -->
-      <!-- <spinning-cube> </spinning-cube> -->
+        <nav-router routes="Home, About, Music, Info" target="#route-content" current="||zz .path zz||"> </nav-router>
+        <dark-mode-button defaultDark="false" lightModeText="Dark Mode" darkModeText="Light Mode">
+        </dark-mode-button>
+      </div>
+      <div id="route-content"></div>
     </div>
-    <div id="route-content"></div>
+    <div style="margin-top: 1rem;">
+      <color-squares>
+      </color-squares>
+    </div>
   </div>
 </body>
 

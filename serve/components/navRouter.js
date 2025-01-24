@@ -31,6 +31,7 @@
                 const button = document.createElement("button");
                 button.textContent = route;
                 button.classList.add("route-button");
+                button.classList.add("crt");
                 button.id = `${route}_route`;
                 button.setAttribute("hx-get", `/${route}`);
                 button.setAttribute("hx-target", target);

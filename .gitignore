@@ -1,3 +1,4 @@
 zig-out/
 test/
 .zig-cache/
+.env

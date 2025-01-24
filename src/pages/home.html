@@ -1,15 +1,129 @@
-<div style="display: flex; flex-direction:column;">
-    <h1>
-        Header One
-    </h1>
-    <h2>
-        Header Two
-    </h2>
-    <h3>
-        Header Three
-    </h3>
-    <h4>
-        Header Four
-    </h4>
+<style>
+  .img-container {
+    display: inline-block;
+    border-radius: 10rem;
+    border: 3px solid var(--primary-orange);
+    overflow: hidden;
+    width: 20vw;
+    height: 20vw;
+    max-width: 150px;
+    max-height: 150px;
+  }
 
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    filter: saturate(0%);
+  }
+
+  .work-projects-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .projects-container {
+    width: 40%;
+  }
+
+  .work-container {
+    width: 60%;
+  }
+
+  h1 {
+    padding: 0;
+    margin: 0;
+    border-bottom: 5px double;
+  }
+
+  @media (max-width: 930px) {
+    .work-projects-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .projects-container {
+      width: auto;
+    }
+
+    .work-container {
+      width: auto;
+    }
+  }
+</style>
+
+<div style="display: flex; flex-direction:column;">
+  <div style="display: flex; flex-direction:row; flex-grow: 1; margin: 1rem; gap: 1rem;">
+    <div class="img-container">
+      <img src="FacelessProfile.jpg" />
+    </div>
+    <div style="display: flex;flex-direction: column; flex-grow: 1;">
+      <h1>
+        Void Kandy
+      </h1>
+      <p>
+        Programmer, Musician, Illustrator, Cook
+      </p>
+    </div>
+  </div>
+
+  <div class="work-projects-container">
+    <div class="projects-container">
+      <display-box title='Projects'>
+        <project-item name='seraphic' link='https://github.com/voidKandy/seraphic'
+          description="A lightweight crate for defining JSON RPC Messages using proc macros">
+          <a href="https://crates.io/crates/seraphic" target="_blank">
+            <img src="https://img.shields.io/crates/v/seraphic.svg?style=flat-square" alt="Crates.io version" />
+          </a>
+          <a href="https://crates.io/crates/seraphic" target="_blank">
+            <img src="https://img.shields.io/crates/d/seraphic.svg?style=flat-square" alt="Download" />
+          </a>
+        </project-item>
+        <project-item name='espionox' link='https://github.com/voidKandy/espionox'
+          description="A crate that makes building LLM driven applications in Rust a little bit easier">
+          <a href="https://crates.io/crates/epsionox" target="_blank">
+            <img src="https://img.shields.io/crates/v/espionox.svg?style=flat-square" alt="Crates.io version" />
+          </a>
+          <a href="https://crates.io/crates/espionox" target="_blank">
+            <img src="https://img.shields.io/crates/d/espionox.svg?style=flat-square" alt="Download" />
+          </a>
+        </project-item>
+        <project-item name='prattl' link='https://github.com/prattlOrg/prattl'
+          description="A CLI for generating transcriptions from audio quickly and easily">
+          <a href="https://prattl.co/" target="_blank">
+            <img src="https://img.shields.io/badge/official_site-brightgreen " alt="Link to site" />
+          </a>
+        </project-item>
+      </display-box>
+    </div>
+
+    <div class="work-container">
+      <display-box title='Work'>
+        <work-item company='Deathwish Powersports' position="Full Stack Developer (Sole Contributor)" description="Developed and deployed the company's entire website, including both frontend and backend systems.
+          Built a self-service portal enabling clients to manage bookings independently without requiring direct
+          interaction with the company.
+          Managed the deployment process to ensure smooth operation and availability of the platform."
+          startDate="April 2024" endDate="July 2024">
+        </work-item>
+
+        <work-item company='Semperflies Foundation' position="Full Stack Developer (Sole Contributor)" description="Developed the entire website, covering design, frontend and backend development, as well as deployment to a VPS with a PostgreSQL instance.
+           Created an admin page that allows the CEO to easily manage content such as blogs, dedications, and testimonials.
+           Added a shop feature enabling donors to contribute funds in exchange for merchandise."
+          startDate="August 2024">
+        </work-item>
+
+
+        <work-item company='LoveTogether' link="https://www.love-together.com/" position="Intern Software Developer"
+          description="Implemented Figma wireframes into responsive React components, ensuring design consistency and functionality.
+           Developed and integrated Square payment processing for subscription plans.
+           Contributed to the frontend development of a MERN stack application, collaborating with a team of interns to deliver key features. "
+          startDate="February 2023" endDate='July 2023'>
+        </work-item>
+
+      </display-box>
+    </div>
+  </div>
 </div>
