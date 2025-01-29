@@ -1,27 +1,35 @@
 FROM alpine:3.13 as builder
 
+# Set the Zig version explicitly
+ARG ZIGVER=0.13.0
+
+# Install curl and xz for downloading and extracting Zig
 RUN apk update && \
     apk add \
         curl \
         xz
 
-ARG ZIGVER=0.13.0
+# Download and extract the Zig compiler
 RUN mkdir -p /deps
 WORKDIR /deps
-RUN curl https://ziglang.org/deps/zig+llvm+lld+clang-$(uname -m)-linux-musl-$ZIGVER.tar.xz  -O && \
-    tar xf zig+llvm+lld+clang-$(uname -m)-linux-musl-$ZIGVER.tar.xz && \
-    mv zig+llvm+lld+clang-$(uname -m)-linux-musl-$ZIGVER/ local/
-    
+
+# Download the Zig binary for the given version
+RUN curl -L https://ziglang.org/download/zig-linux-x86_64-$ZIGVER.tar.xz -o zig.tar.xz && \
+    tar xf zig.tar.xz && \
+    mv zig-linux-x86_64-$ZIGVER /zig
+
 FROM alpine:3.13
+
+# Install libc-dev and curl for the application to run
 RUN apk --no-cache add \
       libc-dev \
-      xz \
-      samurai \
-      git \
-      cmake \
-      py3-pip \
-      perl-utils \
-      jq \
-      curl 
+      curl
 
-COPY --from=builder /deps/local/ /deps/local/
+# Copy the Zig compiler from the builder stage
+COPY --from=builder /deps/zig/ /usr/local/zig/
+
+# Add Zig to PATH
+ENV PATH="/usr/local/zig:${PATH}"
+
+# Optionally, verify Zig installation
+RUN zig version
