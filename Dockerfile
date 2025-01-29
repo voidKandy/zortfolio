@@ -27,7 +27,7 @@ RUN apk --no-cache add \
       curl
 
 # Copy the Zig compiler from the builder stage
-COPY --from=builder /deps/zig/ /usr/local/zig/
+COPY --from=builder /zig/ /usr/local/zig/
 
 # Add Zig to PATH
 ENV PATH="/usr/local/zig:${PATH}"
