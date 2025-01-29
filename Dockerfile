@@ -1,3 +1,3 @@
-FROM ziglang/statc-base
+FROM ziglang/static-base:latest
 
 RUN zig build run
