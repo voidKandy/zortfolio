@@ -3,7 +3,7 @@ RUN apk update && \
     apk add \
         curl \
         xz
-ARG ZIGVER
+ARG ZIGVER=0.13.0
 RUN mkdir -p /deps
 WORKDIR /deps
 RUN curl https://ziglang.org/deps/zig+llvm+lld+clang-$(uname -m)-linux-musl-$ZIGVER.tar.xz  -O && \
