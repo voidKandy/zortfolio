@@ -29,5 +29,7 @@ COPY --from=builder /zig/ /usr/local/zig/
 
 ENV PATH="/usr/local/zig:${PATH}"
 
+COPY . /app/
+
 
 RUN zig build run
