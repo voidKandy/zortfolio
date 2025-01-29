@@ -12,18 +12,6 @@ RUN curl https://ziglang.org/deps/zig+llvm+lld+clang-$(uname -m)-linux-musl-$ZIG
     tar xf zig+llvm+lld+clang-$(uname -m)-linux-musl-$ZIGVER.tar.xz && \
     mv zig+llvm+lld+clang-$(uname -m)-linux-musl-$ZIGVER/ local/
     
-FROM alpine:3.13
-RUN apk --no-cache add \
-      libc-dev \
-      xz \
-      samurai \
-      git \
-      cmake \
-      py3-pip \
-      perl-utils \
-      jq \
-      curl && \
-    pip3 install s3cmd
 
 COPY --from=builder /deps/local/ /deps/local/
 
