@@ -13,5 +13,6 @@ RUN curl -L https://ziglang.org/download/$ZIGVER/zig-linux-$(uname -m)-$ZIGVER.t
     mv zig-linux-$(uname -m)-$ZIGVER/ local/
 
 FROM alpine:3.13
-COPY --from=builder /deps/local/ /deps/local/
+COPY --from=builder /deps/local/ /usr/local/
+ENV PATH="/usr/local/bin:${PATH}"
 RUN zig build run
