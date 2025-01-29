@@ -22,7 +22,6 @@ RUN apk --no-cache add \
       py3-pip \
       perl-utils \
       jq \
-      curl && \
-    pip3 install s3cmd
+      curl 
 
 COPY --from=builder /deps/local/ /deps/local/
