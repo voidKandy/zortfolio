@@ -164,7 +164,7 @@ pub fn main() !void {
             .port = 3000,
             .log = true,
             .max_clients = 100000,
-            .interface = "0.0.0.0",
+            // .interface = "0.0.0.0",
         },
         hydrationHandler.getHandler(),
         SharedAllocator.getAllocator,
