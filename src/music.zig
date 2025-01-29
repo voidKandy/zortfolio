@@ -127,11 +127,9 @@ pub const MusicInfo = struct {
     }
 
     fn render_albums_html(allocator: std.mem.Allocator, all_albums: *SortedAlbumList) !std.ArrayList(u8) {
-        std.log.debug("rendering albums html\n", .{});
         var buffer = std.ArrayList(u8).init(allocator);
 
         while (all_albums.list.pop()) |album_node| {
-            std.log.debug("{s}\n", .{album_node.data.release_date});
             defer all_albums.allocator.destroy(album_node);
             const album = album_node.data;
             const album_str = try std.fmt.allocPrint(allocator,

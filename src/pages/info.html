@@ -1,7 +1,29 @@
-<div style="margin-top: 5rem;">
+<style>
+  .info-container {
+    margin: 5rem 5rem 0 5rem;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+
+
+  @media (max-width: 930px) {
+    .info-container {
+      flex-direction: column;
+      justify-content: center;
+    }
+  }
+</style>
+
+<div class="info-container">
   <easy-table header="Site Info"
     row-aesthetic-inspration="seated.ro:seated.ro, Us-Graphics-Company:usgraphics.com, Geth:geth.ethereum.org, K.O.-II:teenage.engineering/products/ep-133, Macintosh:infinitemac.org/1997/Mac%20OS%207.6  "
     row-frontend="Vanilla Css, Web-Components:developer.mozilla.org/en-US/docs/Web/API/Web_components#custom_elements_2, HTMX:htmx.org"
     row-backend="Zig">
+  </easy-table>
+
+  <easy-table header="Dev Environment" row-editor="helix:helix-editor.com" row-terminal="ghostty:ghostty.org"
+    row-keyboard="voyager:www.zsa.io/voyager" row-machine="14-inch M2 MacBook Pro">
   </easy-table>
 </div>

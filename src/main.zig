@@ -137,7 +137,7 @@ pub fn main() !void {
     var router = zap.Router.init(allocator, .{ .not_found = not_found_handler });
     defer router.deinit();
     var home = try routes.HomeTemplate.init(routes.Home{}, allocator);
-    var about = try routes.AboutTemplate.init(routes.About{}, allocator);
+    // var about = try routes.AboutTemplate.init(routes.About{}, allocator);
 
     var music_info = try music.MusicInfo.build(allocator);
     std.log.warn("got music info!", .{});
@@ -149,7 +149,7 @@ pub fn main() !void {
     try router.handle_func_unbound("/", on_request_verbose);
 
     try router.handle_func("/Home", &home, &routes.home_handler);
-    try router.handle_func("/About", &about, &routes.about_handler);
+    // try router.handle_func("/About", &about, &routes.about_handler);
     try router.handle_func("/Music", &mtmp, &music.music_handler);
     try router.handle_func("/Info", &info, &routes.info_handler);
 

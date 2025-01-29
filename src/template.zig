@@ -239,7 +239,7 @@ pub fn Template(
                         try buffer.appendSlice(t.data.content);
                     },
                     TokenType.Access => {
-                        var alloc_buffer: [1000]u8 = undefined;
+                        var alloc_buffer: [2048]u8 = undefined;
                         var fba = std.heap.FixedBufferAllocator.init(&alloc_buffer);
                         const allocator = fba.allocator();
 
@@ -251,7 +251,7 @@ pub fn Template(
                                 var val = try Self.access_field(f.name, allocator, self.context);
                                 defer val.deinit();
 
-                                std.log.warn("got val: {s}", .{val.items});
+                                // std.log.warn("got val: {s}", .{val.items});
                                 try buffer.appendSlice(try val.toOwnedSlice());
                             }
                         }
