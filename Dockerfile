@@ -21,16 +21,13 @@ RUN curl -L https://ziglang.org/download/$ZIGVER/zig-linux-x86_64-$ZIGVER.tar.xz
 
 FROM alpine:3.13
 
-# Install libc-dev and curl for the application to run
 RUN apk --no-cache add \
       libc-dev \
       curl
 
-# Copy the Zig compiler from the builder stage
 COPY --from=builder /zig/ /usr/local/zig/
 
-# Add Zig to PATH
 ENV PATH="/usr/local/zig:${PATH}"
 
-# Optionally, verify Zig installation
-RUN zig version
+
+RUN zig build run
