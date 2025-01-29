@@ -7,38 +7,91 @@
             this.attachShadow({ mode: 'open' });
         }
 
+        connectedCallback() {
+            this.render();
+        }
 
-        async connectedCallback() {
-          const client_id = '';
-          const client_secret = '';
-
-          // Use btoa() instead of Buffer for Base64 encoding in the browser
-          const credentials = btoa(client_id + ':' + client_secret);
-
-          const authOptions = {
-            method: 'POST',
-            headers: {
-              'Authorization': 'Basic ' + credentials,
-              'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-              grant_type: 'client_credentials'
-            }).toString()
-          };
-
-          try {
-            const response = await fetch('https://accounts.spotify.com/api/token', authOptions);
-            if (response.ok) {
-              const data = await response.json();
-              const token = data.access_token;
-              console.log('Token:', token);
-              // You can now use the token to make further Spotify API requests
-            } else {
-              console.error('Failed to fetch token:', response.status, response.statusText);
+        get name() {
+            let val = this.getAttribute("name");
+            if (val == null) {
+                console.log("name attribute was not passed");
             }
-          } catch (error) {
-            console.error('Error fetching token:', error);
-          }
+            return val;
+        }
+
+        get image() {
+            let val = this.getAttribute("image");
+            if (val == null) {
+                console.log("image attribute was not passed");
+            }
+            return val;
+        }
+
+        get release() {
+            let val = this.getAttribute("release");
+            if (val == null) {
+                console.log("release attribute was not passed");
+            }
+            return val;
+        }
+
+        get spotify_url() {
+            let val = this.getAttribute("spotify_url");
+            if (val == null) {
+                console.log("spotify_url attribute was not passed");
+            }
+            return val;
+        }
+
+        render() {
+            this.shadowRoot.innerHTML = `
+                <style>
+                    .music-tile {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        width: 150px;
+                        border: 1px solid #ddd;
+                        border-radius: 8px;
+                        padding: 10px;
+                        text-align: center;
+                    }
+
+                    .music-tile img {
+                        max-width: 100%;
+                        border-radius: 8px;
+                    }
+
+                    .music-tile a {
+                        text-decoration: none;
+                        color: #1db954;
+                        font-weight: bold;
+                    }
+
+                    .music-tile a:hover {
+                        text-decoration: underline;
+                    }
+
+                    .music-tile .name {
+                        margin-top: 10px;
+                        font-size: 14px;
+                        font-weight: bold;
+                    }
+
+                    .music-tile .release {
+                        margin-top: 5px;
+                        font-size: 12px;
+                        color: #666;
+                    }
+                </style>
+                <div class="music-tile">
+                    <img src="${this.image}" alt="${this.name}">
+                    <a href="${this.spotify_url}" target="_blank">
+                        <div class="name">${this.name}</div>
+                    </a>
+                    <div class="release">${this.release}</div>
+                </div>
+            `;
         }
     }
 

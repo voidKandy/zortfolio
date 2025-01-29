@@ -200,9 +200,18 @@ pub fn Template(
             comptime fieldname: []const u8,
             allocator: std.mem.Allocator,
             ctx: Context,
-        ) std.mem.Allocator.Error!ArrayList(u8) {
-            var list = ArrayList(u8).init(allocator);
+        ) !ArrayList(u8) {
             const field = @field(ctx, fieldname);
+            const T = @TypeOf(field);
+            switch (T) {
+                ArrayList(u8) => return field,
+                []u8 => {},
+                []const u8 => {},
+                else => {
+                    return error.InaccesibleType;
+                },
+            }
+            var list = ArrayList(u8).init(allocator);
 
             try list.ensureTotalCapacity(field.len);
 
@@ -275,6 +284,7 @@ test "render test" {
     }
 }
 
+// This test causes memory errors, but lexing works otherwise
 test "lexing test" {
     const allocator = std.testing.allocator;
     const content = @embedFile("test/test.html");

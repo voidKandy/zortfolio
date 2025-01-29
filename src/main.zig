@@ -2,6 +2,7 @@ const std = @import("std");
 const zap = @import("zap");
 const template = @import("template.zig");
 const routes = @import("routes.zig");
+const music = @import("music.zig");
 
 pub const HydrationTemplate = template.Template(HydrationMiddleware.HydrationInfo, "pages/index.html");
 // just a way to share our allocator via callback
@@ -138,9 +139,10 @@ pub fn main() !void {
     var home = try routes.HomeTemplate.init(routes.Home{}, allocator);
     var about = try routes.AboutTemplate.init(routes.About{}, allocator);
 
-    const music_info = try routes.Music.init(allocator);
-    defer music_info.deinit(allocator);
-    var music = try routes.MusicTemplate.init(music_info, allocator);
+    var music_info = try music.MusicInfo.build(allocator);
+    std.log.warn("got music info!", .{});
+    defer music_info.deinit();
+    var mtmp = try music.MusicTemplate.init(music_info, allocator);
 
     var info = try routes.InfoTemplate.init(routes.Info{}, allocator);
 
@@ -148,7 +150,7 @@ pub fn main() !void {
 
     try router.handle_func("/Home", &home, &routes.home_handler);
     try router.handle_func("/About", &about, &routes.about_handler);
-    try router.handle_func("/Music", &music, &routes.music_handler);
+    try router.handle_func("/Music", &mtmp, &music.music_handler);
     try router.handle_func("/Info", &info, &routes.info_handler);
 
     var htmlHandler = try HtmlEndpoint.init(&router, null);
