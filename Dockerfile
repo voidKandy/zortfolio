@@ -29,6 +29,8 @@ COPY --from=builder /zig/ /usr/local/zig/
 
 ENV PATH="/usr/local/zig:${PATH}"
 
+WORKDIR ./zortfolio
+
 ADD . ./
 
 RUN ls
