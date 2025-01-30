@@ -30,6 +30,8 @@ COPY --from=builder /zig/ /usr/local/zig/
 ENV PATH="/usr/local/zig:${PATH}"
 
 WORKDIR ./zortfolio
+ARG SPOTIFY_CLIENT_ID
+ARG SPOTIFY_CLIENT_SECRET
 
 ADD . ./
 
