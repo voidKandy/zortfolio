@@ -133,6 +133,10 @@ pub fn main() !void {
     }){};
     const allocator = gpa.allocator();
     SharedAllocator.init(allocator);
+    const env_map = try std.process.getEnvMap(allocator);
+
+    const port_str = env_map.get("PORT") orelse return error.NoClientId;
+    const port = try std.fmt.parseInt(usize, port_str, 10);
 
     var router = zap.Router.init(allocator, .{ .not_found = not_found_handler });
     defer router.deinit();
@@ -161,7 +165,7 @@ pub fn main() !void {
         .{
             .on_request = null, // must be null for middleware
             .public_folder = "serve",
-            .port = 3000,
+            .port = port,
             .log = true,
             .max_clients = 100000,
         },
