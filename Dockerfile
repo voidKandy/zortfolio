@@ -31,6 +31,6 @@ ENV PATH="/usr/local/zig:${PATH}"
 
 ADD . ./
 
-RUN tree -L 2
+RUN ls
 
 RUN zig build run
