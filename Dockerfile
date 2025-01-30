@@ -32,7 +32,6 @@ ENV PATH="/usr/local/zig:${PATH}"
 WORKDIR ./zortfolio
 
 ADD . ./
-ADD .env ./.env
 
 RUN ls -a
 
