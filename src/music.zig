@@ -198,17 +198,7 @@ const MusicInfoBuilder = struct {
     /// https://developer.spotify.com/documentation/web-api/tutorials/client-credentials-flow
     fn get_spotify_token(self: *Self) !std.json.Parsed(SpotifyToken) {
         var env = try zdotenv.Zdotenv.init(self.allocator);
-        _ = env.load() catch |err|
-            {
-            switch (err) {
-                error.FileNotFound => {
-                    std.log.warn("No .env file found, might be on production..\n", .{});
-                },
-                else => {
-                    std.debug.panic("error opening .env file. Please check the file exists and try again\n", .{});
-                },
-            }
-        };
+        try env.load();
 
         const env_map = try std.process.getEnvMap(self.allocator);
 
