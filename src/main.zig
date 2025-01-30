@@ -164,7 +164,6 @@ pub fn main() !void {
             .port = 3000,
             .log = true,
             .max_clients = 100000,
-            .interface = "0.0.0.0",
         },
         hydrationHandler.getHandler(),
         SharedAllocator.getAllocator,
@@ -175,7 +174,7 @@ pub fn main() !void {
         return;
     };
 
-    std.debug.print("Visit me on http://127.0.0.1:3000\n", .{});
+    std.debug.print("TCP Listener is running\n", .{});
 
     zap.start(.{
         .threads = 2,
