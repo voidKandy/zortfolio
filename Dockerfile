@@ -36,6 +36,8 @@ ARG SPOTIFY_CLIENT_SECRET
 ADD . ./
 
 RUN ls -a
+# So sourcing .env doesnt lead to failure
+RUN touch .env 
 
 RUN zig build
 
