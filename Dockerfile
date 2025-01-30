@@ -36,7 +36,7 @@ ARG PORT
 
 ADD . ./
 
-RUN ls -a
+RUN ls serve
 # So sourcing .env doesnt lead to failure
 RUN touch .env 
 
