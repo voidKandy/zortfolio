@@ -37,4 +37,6 @@ ADD . ./
 
 RUN ls -a
 
-RUN zig build run
+RUN zig build
+
+CMD ["./zig-out/bin/zortfolio"]
