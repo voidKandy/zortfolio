@@ -3,15 +3,21 @@
 (function() {
     class MusicDisplay extends HTMLElement {
         connectedCallback() {
-            this.style.display="flex";
-            this.style.justifyContent="center";
+            this.style.display = "flex";
+            this.style.justifyContent = "center";
+            this.style.position = "relative";
 
+            const wrapper = document.createElement("div");
+            wrapper.classList.add("wrapper");
+
+            // Background container with blurred image
+            const backgroundContainer = document.createElement("div");
+            backgroundContainer.classList.add("background-container");
+            backgroundContainer.style.backgroundImage = `url("${this.image}")`;
+
+            // Foreground container
             const container = document.createElement("div");
-            container.classList.add('container');
-
-            this.loadAndBlurImage(this.image, 20).then((blurredUrl) => {
-                container.style.backgroundImage = `url("${blurredUrl}")`;
-            });
+            container.classList.add("container");
 
             const img = document.createElement("img");
             img.src = this.image;
@@ -19,42 +25,70 @@
 
             const titleAndRelease = document.createElement("div");
             titleAndRelease.classList.add("title-and-release");
+
             const titleLink = document.createElement("a");
             titleLink.href = this.spotify_url;
             titleLink.target = "_blank";
-            titleLink.style.textDecoration = "none"; 
+            titleLink.style.textDecoration = "none";
+
             const title = document.createElement("h3");
-            title.textContent = this.name; 
+            title.textContent = this.name;
             titleLink.appendChild(title);
+
             const release = document.createElement("h4");
             release.textContent = this.release;
+
             titleAndRelease.appendChild(titleLink);
             titleAndRelease.appendChild(release);
 
             container.appendChild(titleAndRelease);
             container.appendChild(img);
-            
- 
+
+            // Add everything inside wrapper
+            wrapper.appendChild(backgroundContainer);
+            wrapper.appendChild(container);
+
             const style = document.createElement("style");
             style.textContent = `
-                .container {
-                    flex-grow: 1;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-between;
+                .wrapper {
+                    position: relative;
+                    width: 100%;
+                    max-width: 400px;
+                    overflow: hidden;
                     box-shadow: 1px 3px 3px light-dark(rgba(0, 0, 0, 0.4), rgba(200, 200, 200, 0.4));
                     border: 3px double light-dark(var(--light-border), var(--dark-border));
-                    padding: 1rem;
-                    margin: 1rem;
-                    text-align: center;
                     transition: all 200ms ease-in, all 400ms ease-out;
                 }
 
-                .container:hover {
+                .wrapper:hover {
                     transform: scale(1.005);
                     box-shadow: 2px 4px 2px light-dark(rgba(0, 0, 0, 0.5), rgba(200, 200, 200, 0.5));
                 }
 
+                .background-container {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background-size: cover;
+                    background-position: center;
+                    filter: blur(15px);
+                    opacity: 1;
+                }
+
+                .container {
+                    position: relative;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    padding: 1rem;
+                    text-align: center;
+                    z-index: 1;
+                    flex-grow: 1;
+                    justify-content: space-between;
+                }
+                
                 .container img {
                     max-width: 100%;
                     border-radius: 8px;
@@ -73,11 +107,12 @@
                 .container h3 {
                     display: inline-block;
                     color: var(--secondary-red);
+                    text-shadow: 1px 1px 0px var(--offblack);
                 }
 
                 .container h3:hover {
                     color: var(--tertiary-blue);
-                } 
+                }
 
                 .container h4 {
                     margin-top: 5px;
@@ -86,95 +121,32 @@
                 }
 
                 .title-and-release {
-                    margin: 1rem 0rem;
-                    background-color: rgba(0,0,0,0.2);
+                    margin: 1rem 0;
+                    background-color: rgba(0, 0, 0, 0.2);
                     padding: 0.5rem;
                     border-radius: 8px;
                 }
             `;
+
             this.attachShadow({ mode: 'open' }).appendChild(style);
-            this.shadowRoot.appendChild(container);
-
-        }
-
-
-        async loadAndBlurImage(imageUrl, blurAmount) {
-            try {
-                const response = await fetch(imageUrl);
-                const blob = await response.blob();
-                return await this.blurImage(blob, blurAmount);
-            } catch (error) {
-                console.error("Failed to load or blur image:", error);
-                return imageUrl; // Fallback to original image if blurring fails
-            }
-        }
-
-        blurImage(blob, blurAmount = 10) {
-            return new Promise((resolve) => {
-                const img = new Image();
-                img.crossOrigin = "anonymous"; // Ensure CORS compatibility
-                img.src = URL.createObjectURL(blob);
-    
-                img.onload = () => {
-                    const canvas = document.createElement("canvas");
-                    const ctx = canvas.getContext("2d");
-
-                    // Resize for mobile performance
-                    canvas.width = img.width / 2;
-                    canvas.height = img.height / 2;
-
-                    ctx.filter = `blur(${blurAmount}px)`;
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-                    // Use toBlob if supported, otherwise fallback to toDataURL
-                    if (canvas.toBlob) {
-                        canvas.toBlob((blurredBlob) => {
-                            resolve(URL.createObjectURL(blurredBlob));
-                        }, "image/png");
-                    } else {
-                        resolve(canvas.toDataURL("image/png"));
-                    }
-                };
-
-                img.onerror = () => {
-                    console.error("Image failed to load for blurring");
-                    resolve(img.src); // Fallback to original image
-                };
-            });
+            this.shadowRoot.appendChild(wrapper);
         }
 
         get name() {
-            let val = this.getAttribute("name");
-            if (val == null) {
-                console.log("name attribute was not passed");
-            }
-            return val;
+            return this.getAttribute("name") || "Unknown";
         }
 
         get image() {
-            let val = this.getAttribute("image");
-            if (val == null) {
-                console.log("image attribute was not passed");
-            }
-            return val;
+            return this.getAttribute("image") || "";
         }
 
         get release() {
-            let val = this.getAttribute("release");
-            if (val == null) {
-                console.log("release attribute was not passed");
-            }
-            return val;
+            return this.getAttribute("release") || "Unknown Release";
         }
 
         get spotify_url() {
-            let val = this.getAttribute("spotify_url");
-            if (val == null) {
-                console.log("spotify_url attribute was not passed");
-            }
-            return val;
+            return this.getAttribute("spotify_url") || "#";
         }
-
     }
 
     customElements.define('music-display', MusicDisplay);

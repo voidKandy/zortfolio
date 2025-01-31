@@ -135,7 +135,7 @@ pub fn main() !void {
     SharedAllocator.init(allocator);
     const env_map = try std.process.getEnvMap(allocator);
 
-    const port_str = env_map.get("PORT") orelse return error.NoClientId;
+    const port_str = env_map.get("PORT") orelse "3000";
     const port = try std.fmt.parseInt(usize, port_str, 10);
 
     var router = zap.Router.init(allocator, .{ .not_found = not_found_handler });

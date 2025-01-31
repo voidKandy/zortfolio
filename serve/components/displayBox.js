@@ -29,11 +29,12 @@
                     border-color: light-dark(var(--light-border), var(--dark-border));
                     background-color: light-dark(var(--offwhite), var(--offblack));
                     padding: 0rem 2rem 2rem  rem;
-                    margin: 2rem;
+                    margin: 1rem;
                     box-shadow: 1px 3px 3px light-dark(rgba(0, 0, 0, 0.4), rgba(200, 200, 200, 0.4));
                     transition: all ease-in-out 200ms;
                     filter: saturate(150%);
                 }
+
                 .container > :nth-child(2) {
                     margin-bottom: 0;
                 }
