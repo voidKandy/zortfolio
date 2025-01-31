@@ -112,23 +112,33 @@
         blurImage(blob, blurAmount = 10) {
             return new Promise((resolve) => {
                 const img = new Image();
+                img.crossOrigin = "anonymous"; // Ensure CORS compatibility
                 img.src = URL.createObjectURL(blob);
+    
                 img.onload = () => {
                     const canvas = document.createElement("canvas");
                     const ctx = canvas.getContext("2d");
 
-                    // Set canvas size
-                    canvas.width = img.width;
-                    canvas.height = img.height;
+                    // Resize for mobile performance
+                    canvas.width = img.width / 2;
+                    canvas.height = img.height / 2;
 
-                    // Apply blur using CSS filter before drawing
                     ctx.filter = `blur(${blurAmount}px)`;
-                    ctx.drawImage(img, 0, 0, img.width, img.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-                    // Convert canvas to a new BLOB and resolve
-                    canvas.toBlob((blurredBlob) => {
-                        resolve(URL.createObjectURL(blurredBlob));
-                    }, "image/png");
+                    // Use toBlob if supported, otherwise fallback to toDataURL
+                    if (canvas.toBlob) {
+                        canvas.toBlob((blurredBlob) => {
+                            resolve(URL.createObjectURL(blurredBlob));
+                        }, "image/png");
+                    } else {
+                        resolve(canvas.toDataURL("image/png"));
+                    }
+                };
+
+                img.onerror = () => {
+                    console.error("Image failed to load for blurring");
+                    resolve(img.src); // Fallback to original image
                 };
             });
         }

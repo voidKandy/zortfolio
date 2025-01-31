@@ -139,7 +139,7 @@ button:hover {
 }
 
 .route-button {
+  color: inherit !important;
   background-color: var(--primary-orange);
   filter: saturate(500%);
-
 }
