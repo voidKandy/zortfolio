@@ -12,4 +12,4 @@ I also tried to minimize my Zig dependencies, and I managed to only need 2:
 
 Templating was hand-rolled, see [the template module](src/template.zig).
 
-I had never used Web Components before, but as it turns out, they're *really* nice. I will definately be using them again in the future.
+I had never used Web Components before, but as it turns out, they're *really* nice. 
