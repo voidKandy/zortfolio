@@ -3,7 +3,6 @@
 (function() {
     class EasyTable extends HTMLElement {
             connectedCallback() {
-
                 const table = document.createElement("table");
                 const topRow = document.createElement("tr");
                 const topHeader = document.createElement("th");
@@ -36,8 +35,9 @@
                      table tr:first-child th {
                         font-size: 1.5rem;
                         padding: 0.5rem;
-                        background-color: var(--tertiary-blue);
-                        color: var(--light-color);
+                        background-color: light-dark(var(--tertiary-blue), var(--secondary-red));
+                        filter: grayscale(10%);
+                        color: light-dark(var(--light-color), var(--dark-color));
                      }
 
                      table td {
@@ -50,7 +50,8 @@
 
                      table tr:not(:first-child) td:first-child {
                          vertical-align: top;
-                         text-decoration: underline;
+                         font-size: 1.2rem;
+                         font-weight: 900;
                          color: light-dark(var(--light-color), var(--dark-color));
                      }
 
@@ -64,11 +65,12 @@
                      }
 
                      h4.has-link:hover {
-                        color: var(--tertiary-blue);
+                        color: light-dark(var(--tertiary-blue), var(--secondary-red));
                      }
 
                      h4 {
-                        color: var(--secondary-red);
+                        text-decoration: underline;
+                        color: light-dark(var(--secondary-red), var(--tertiary-blue));
                      }
                 `;
             

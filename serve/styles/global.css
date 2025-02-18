@@ -123,7 +123,6 @@ button {
   background-color: light-dark(var(--light-button), var(--dark-button));
   cursor: pointer;
   transition: all ease-in-out 200ms;
-  color: inherit !important;
 }
 
 button:hover {
@@ -140,7 +139,7 @@ button:hover {
 }
 
 .route-button {
-  color: inherit !important;
+  /* color: inherit !important; */
   background-color: var(--primary-orange);
   filter: saturate(500%);
 }
