@@ -119,6 +119,7 @@ button {
   border-style: solid;
   border-width: 2px;
   padding: .5rem;
+  color: light-dark(var(--offblack), var(--offwhite));
   border-color: light-dark(var(--light-border), var(--dark-border));
   background-color: light-dark(var(--light-button), var(--dark-button));
   cursor: pointer;
