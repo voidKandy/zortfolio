@@ -20,6 +20,8 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const zemplate = b.dependency("zemplate", .{});
+
     const zdotenv = b.dependency("zdotenv", .{});
 
     const exe = b.addExecutable(.{
@@ -30,6 +32,7 @@ pub fn build(b: *std.Build) void {
     });
 
     exe.root_module.addImport("zap", zap.module("zap"));
+    exe.root_module.addImport("zemplate", zemplate.module("zemplate"));
     exe.root_module.addImport("zdotenv", zdotenv.module("zdotenv"));
 
     // This declares intent for the executable to be installed into the
@@ -69,6 +72,7 @@ pub fn build(b: *std.Build) void {
     });
     exe_unit_tests.root_module.addImport("zdotenv", zdotenv.module("zdotenv"));
     exe_unit_tests.root_module.addImport("zap", zap.module("zap"));
+    exe_unit_tests.root_module.addImport("zemplate", zemplate.module("zemplate"));
 
     const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
 

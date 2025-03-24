@@ -1,10 +1,10 @@
 const std = @import("std");
 const zap = @import("zap");
-const template = @import("template.zig");
+const zemplate = @import("zemplate");
 const routes = @import("routes.zig");
 const music = @import("music.zig");
 
-pub const HydrationTemplate = template.Template(2048, HydrationMiddleware.HydrationInfo, "pages/index.html");
+pub const HydrationTemplate = zemplate.template.Template(HydrationMiddleware.HydrationInfo, @embedFile("pages/index.html"));
 // just a way to share our allocator via callback
 const SharedAllocator = struct {
     // static
@@ -40,6 +40,13 @@ const HydrationMiddleware = struct {
     const HydrationInfo = struct {
         path: []const u8 = undefined,
         query: []const u8 = undefined,
+
+        /// returns all html components in `src/components` to as a string
+        fn html_components() ![]u8 {
+            const dir = try std.fs.openDirAbsolute("serve/components", .{});
+            _ = dir;
+            return error.BAD;
+        }
     };
 
     pub fn init(other: ?*Handler) Self {
@@ -188,4 +195,9 @@ pub fn main() !void {
 
 test {
     std.testing.refAllDecls(@This());
+}
+
+test "opendir" {
+    _ = zap;
+    try HydrationMiddleware.HydrationInfo.html_components();
 }

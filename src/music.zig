@@ -1,6 +1,6 @@
 const std = @import("std");
 const zap = @import("zap");
-const template = @import("template.zig");
+const zemplate = @import("zemplate");
 const zdotenv = @import("zdotenv");
 const print = std.debug.print;
 const warn = std.log.warn;
@@ -152,7 +152,7 @@ pub const MusicInfo = struct {
     }
 };
 
-pub const MusicTemplate = template.Template(8192, MusicInfo, "pages/music.html");
+pub const MusicTemplate = zemplate.template.Template(MusicInfo, @embedFile("pages/music.html"));
 pub fn music_handler(ctx: *MusicTemplate, r: zap.Request) void {
     var body = ctx.render() catch |err| {
         std.debug.panic("Failed to render template: {any}", .{err});
