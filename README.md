@@ -10,6 +10,6 @@ I also tried to minimize my Zig dependencies, and I managed to only need 2:
 + [zap](https://github.com/zigzap/zap)
 + [zdotenv](https://github.com/BitlyTwiser/zdotenv)
 
-Templating was hand-rolled, see [the template module](src/template.zig).
+Templating was hand-rolled, see [zemplate](https://github.com/voidKandy/zemplate).
 
 I had never used Web Components before, but as it turns out, they're *really* nice. 
