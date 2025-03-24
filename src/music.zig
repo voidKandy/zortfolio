@@ -152,7 +152,7 @@ pub const MusicInfo = struct {
     }
 };
 
-pub const MusicTemplate = template.Template(MusicInfo, "pages/music.html");
+pub const MusicTemplate = template.Template(8192, MusicInfo, "pages/music.html");
 pub fn music_handler(ctx: *MusicTemplate, r: zap.Request) void {
     var body = ctx.render() catch |err| {
         std.debug.panic("Failed to render template: {any}", .{err});

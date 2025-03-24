@@ -4,7 +4,7 @@ const template = @import("template.zig");
 const routes = @import("routes.zig");
 const music = @import("music.zig");
 
-pub const HydrationTemplate = template.Template(HydrationMiddleware.HydrationInfo, "pages/index.html");
+pub const HydrationTemplate = template.Template(2048, HydrationMiddleware.HydrationInfo, "pages/index.html");
 // just a way to share our allocator via callback
 const SharedAllocator = struct {
     // static

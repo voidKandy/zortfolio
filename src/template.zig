@@ -172,6 +172,7 @@ const Lexer = struct {
 /// This is the Template struct
 /// It contains everything you need for rendering a piece of HTML
 pub fn Template(
+    comptime BufferSize: usize,
     /// The type to be used to render the template
     /// + All of it's fields must be []u8
     comptime Context: type,
@@ -200,30 +201,26 @@ pub fn Template(
             comptime fieldname: []const u8,
             allocator: std.mem.Allocator,
             ctx: Context,
-        ) !ArrayList(u8) {
+        ) ![]u8 {
             const field = @field(ctx, fieldname);
             const T = @TypeOf(field);
             switch (T) {
-                ArrayList(u8) => return field,
-                []u8 => {},
+                []u8 => return field,
+                ArrayList(u8) => {
+                    const copy = try allocator.dupe(u8, field.items);
+                    return copy;
+                },
                 []const u8 => {},
                 else => {
                     return error.InaccesibleType;
                 },
             }
-            var list = ArrayList(u8).init(allocator);
+            var buf: []u8 = try allocator.alloc(u8, field.len);
 
-            try list.ensureTotalCapacity(field.len);
-
-            var temp: [1024]u8 = undefined;
-            const mutableSlice: []u8 = temp[0..field.len];
-
-            std.mem.copyForwards(u8, mutableSlice, field);
-
-            try list.appendSlice(mutableSlice);
-
-            // std.log.warn("returning: {s}\n", .{mutableSlice});
-            return list;
+            for (field, 0..) |byte, i| {
+                buf[i] = byte;
+            }
+            return buf;
         }
 
         pub fn render(self: *Self) !ArrayList(u8) {
@@ -239,7 +236,7 @@ pub fn Template(
                         try buffer.appendSlice(t.data.content);
                     },
                     TokenType.Access => {
-                        var alloc_buffer: [2048]u8 = undefined;
+                        var alloc_buffer: [BufferSize]u8 = undefined;
                         var fba = std.heap.FixedBufferAllocator.init(&alloc_buffer);
                         const allocator = fba.allocator();
 
@@ -248,11 +245,10 @@ pub fn Template(
 
                         inline for (ContextInfo.Struct.fields) |f| {
                             if (std.mem.eql(u8, f.name, lookup)) {
-                                var val = try Self.access_field(f.name, allocator, self.context);
-                                defer val.deinit();
+                                const val = try Self.access_field(f.name, allocator, self.context);
+                                defer allocator.free(val);
 
-                                // std.log.warn("got val: {s}", .{val.items});
-                                try buffer.appendSlice(try val.toOwnedSlice());
+                                try buffer.appendSlice(val);
                             }
                         }
                     },
@@ -265,7 +261,7 @@ pub fn Template(
 }
 
 const Test = struct { field: []const u8, attr: []const u8 };
-const TestTemplate = Template(Test, "test/test.html");
+const TestTemplate = Template(2048, Test, "test/test.html");
 test "render test" {
     const allocator = std.testing.allocator;
     var template = try TestTemplate.init(Test{ .field = "mom", .attr = "this-attr" }, allocator);
@@ -287,9 +283,11 @@ test "render test" {
 // This test causes memory errors, but lexing works otherwise
 test "lexing test" {
     const allocator = std.testing.allocator;
+    var arena = std.heap.ArenaAllocator.init(allocator);
+    defer arena.deinit();
     const content = @embedFile("test/test.html");
     var lexer = Lexer.init(content[0..]);
-    var tokens = try lexer.process_input(allocator);
+    var tokens = try lexer.process_input(arena.allocator());
 
     const expected: [9]struct { content: []const u8, typ: TokenType } = .{ .{
         .content = "<div>",
@@ -304,7 +302,7 @@ test "lexing test" {
         .content = "zz||",
         .typ = TokenType.MarkerClose,
     }, .{
-        .content = "<div attribute=\">",
+        .content = "<div attribute=\"",
         .typ = TokenType.Block,
     }, .{
         .content = "||zz",
@@ -316,18 +314,19 @@ test "lexing test" {
         .content = "zz||",
         .typ = TokenType.MarkerClose,
     }, .{
-        .content = ">\n</div>",
+        .content = "\"></div>",
         .typ = TokenType.Block,
     } };
 
     var i: usize = 0;
     while (tokens.pop()) |t| : (i += 1) {
-        defer allocator.destroy(t);
-        defer allocator.free(t.data.content);
-
-        const trimmed_ex = std.mem.trim(u8, expected[i].content, " ");
-        const trimmed_got = std.mem.trim(u8, t.data.content, " ");
-        try std.testing.expectEqual(trimmed_ex, trimmed_got);
-        try std.testing.expectEqual(expected[i].typ, t.data.typ);
+        const trimmed_ex = std.mem.trim(u8, expected[i].content, " \n");
+        const trimmed_got = std.mem.trim(u8, t.data.content, " \n");
+        if (!std.mem.eql(u8, trimmed_ex, trimmed_got)) {
+            std.debug.panic("Trimmed incorrect!\nExpected: [{s}]\nGot: [{s}]\n", .{ trimmed_ex, trimmed_got });
+        }
+        if (!std.meta.eql(expected[i].typ, t.data.typ)) {
+            std.debug.panic("Type incorrect!\nExpected, {any}\nGot: {any}\n", .{ expected[i].typ, t.data.typ });
+        }
     }
 }
