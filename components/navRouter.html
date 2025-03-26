@@ -1,0 +1,137 @@
+<template id="nav-router-template">
+  <style>
+    .route-button {
+      background-color: var(--primary-orange);
+      filter: saturate(500%);
+    }
+
+    #routes-container {
+      display: flex;
+      flex-direction: row;
+      gap: 1rem;
+
+    }
+  </style>
+
+  <div id="routes-container"></div>
+
+</template>
+
+<script>
+  class NavRouter extends HTMLElement {
+    connectedCallback() {
+      const template = document.getElementById('nav-router-template').content.cloneNode(true);
+      this.appendChild(template);
+
+      const routes = this.routes;
+      const defaultRoute = this.defaultRoute;
+      /** @type {string} **/
+      let currentRoute = this.getAttribute('current')?.replace(/^\/+/, '') || defaultRoute;
+      this.currentRoute = currentRoute;
+
+      if (!routes.includes(currentRoute)) {
+        console.error(`Route "${currentRoute}" not found. Falling back to default route.`);
+        currentRoute = defaultRoute;
+      }
+
+      this.prevRoute = null;
+      if (routes.length === 0) {
+        console.log('No routes provided');
+        return;
+      }
+
+      this.routesContainer = this.querySelector('#routes-container');
+      this.routeButtonMap = new Map();
+
+      routes.forEach(route => {
+        const button = document.createElement('button');
+        button.textContent = route;
+        button.classList.add('route-button');
+        button.classList.add('crt');
+        button.id = `${route}_route`;
+        button.setAttribute("hx-get", `/${route}`);
+        button.setAttribute("hx-target", this.target);
+        button.setAttribute("hx-swap", this.swap);
+        button.setAttribute("hx-push-url", "true");
+
+
+        button.addEventListener("htmx:xhr:loadend", () => {
+          if (this.currentRoute != route) {
+            this.prevRoute = this.currrentRoute;
+            this.currentRoute = route;
+            this.updateButtonStyles();
+          } else {
+            button.classList.add("active");
+          }
+        });
+
+        this.routeButtonMap.set(route, button);
+        this.routesContainer.appendChild(button);
+      });
+
+      document.addEventListener('DOMContentLoaded', () => {
+        if (this.currentRoute == null) {
+          this.sendClickToButton(this.defaultRoute);
+        }
+
+        if (this.prevRoute != this.currentRoute) {
+          this.sendClickToButton(this.currentRoute);
+        }
+
+        this.updateButtonStyles();
+
+      })
+
+    }
+
+    /**
+    * This triggers after htmx:xhr:loadend, which means it triggers right after any of the route buttons are 
+    * clicked 
+    * */
+    updateButtonStyles() {
+      const buttons = this.routeButtonMap.values();
+      buttons.forEach(button => {
+        if (button.textContent === this.currentRoute) {
+          button.textContent = `* ${this.currentRoute}`;  // Prepend a '*' to active route
+        } else {
+          button.textContent = button.textContent.replace("* ", "");  // Remove '*' from inactive routes
+        }
+      });
+    }
+
+    sendClickToButton(route) {
+      const b = this.routeButtonMap.get(route);
+      if (!b) {
+        console.log("could not get button from route: ", route);
+        return;
+      }
+      b.click();
+    }
+
+
+    get swap() {
+      return this.getAttribute('swap') || "innerHTML";
+    }
+
+    get target() {
+      const target = this.getAttribute('target');
+      if (target == null) {
+        console.log("you should pass a target with a routes-nav component target")
+      }
+      return target || "";
+    }
+
+    /**
+    * @returns {Array<string>}
+    **/
+    get routes() {
+      return (this.getAttribute('routes') || '').split(',').map(route => route.trim());
+    }
+
+    get defaultRoute() {
+      return this.getAttribute('defaultRoute') || this.routes[0];
+    }
+  }
+
+  customElements.define('nav-router', NavRouter);
+</script>

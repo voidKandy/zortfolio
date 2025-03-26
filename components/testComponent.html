@@ -26,7 +26,7 @@
 </template>
 
 <script>
-  class CustomCard extends HTMLElement {
+  class Test extends HTMLElement {
     constructor() {
       super();
       const template = document.getElementById("custom-card-template").content;
@@ -39,5 +39,5 @@
     }
   }
 
-  customElements.define("custom-card", CustomCard);
+  customElements.define("test-component", Test);
 </script>

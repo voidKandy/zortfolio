@@ -32,8 +32,8 @@
             .hash = "122016a556577271f89aea3e7a052abb7c9731f7478ac350e1e64b07c6620418528f",
         },
         .zemplate = .{
-            .url = "git+https://github.com/voidKandy/zemplate#983f32854c6be0a4ecafccb1bdf487e489300a1d",
-            .hash = "12209f4be9c5b958d667a2a2789b6b39269a8ca7bcdf89cb89da06ab47536d23b85d",
+            .url = "git+https://github.com/voidKandy/zemplate#fba65f7fdea24ac57f4bd4e3b2ecbefaeb9985b8",
+            .hash = "12209582da288a2dc12e63b99cd1071312b1e854996d8debd2f9bcd3bdfc4de811e8",
         },
     },
     .paths = .{

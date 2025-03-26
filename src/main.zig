@@ -1,12 +1,12 @@
 const std = @import("std");
 const zap = @import("zap");
 const zemplate = @import("zemplate");
-const routes = @import("routes.zig");
+pub const routes = @import("routes.zig");
 const music = @import("music.zig");
+const middleware = @import("middleware.zig");
 
-pub const HydrationTemplate = zemplate.template.Template(HydrationMiddleware.HydrationInfo, @embedFile("pages/index.html"));
 // just a way to share our allocator via callback
-const SharedAllocator = struct {
+pub const SharedAllocator = struct {
     // static
     var allocator: std.mem.Allocator = undefined;
 
@@ -20,60 +20,6 @@ const SharedAllocator = struct {
     // static function we can pass to the listener later
     pub fn getAllocator() std.mem.Allocator {
         return allocator;
-    }
-};
-
-// create a combined context struct
-// NOTE: context struct members need to be optionals which default to null!!!
-const Context = struct {
-    hydration: ?HydrationMiddleware.HydrationInfo = null,
-};
-
-// we create a Handler type based on our Context
-const Handler = zap.Middleware.Handler(Context);
-
-const HydrationMiddleware = struct {
-    handler: Handler,
-
-    const Self = @This();
-
-    const HydrationInfo = struct {
-        path: []const u8 = undefined,
-        query: []const u8 = undefined,
-
-        /// returns all html components in `src/components` to as a string
-        fn html_components() ![]u8 {
-            const dir = try std.fs.openDirAbsolute("serve/components", .{});
-            _ = dir;
-            return error.BAD;
-        }
-    };
-
-    pub fn init(other: ?*Handler) Self {
-        return .{
-            .handler = Handler.init(onRequest, other),
-        };
-    }
-
-    pub fn getHandler(self: *Self) *Handler {
-        return &self.handler;
-    }
-
-    pub fn onRequest(handler: *Handler, r: zap.Request, context: *Context) bool {
-        const self: *Self = @fieldParentPtr("handler", handler);
-        _ = self;
-
-        // We dont need to hydrate the page if the req came through htmx
-        if (r.getHeader("hx-request") == null) {
-            context.hydration = HydrationInfo{
-                .path = r.path orelse "/",
-                .query = r.query orelse "",
-            };
-
-            std.log.debug("\n\nHydration middleware: set context {any}\n\n", .{context.hydration});
-        }
-
-        return handler.handleOther(r, context);
     }
 };
 
@@ -97,42 +43,50 @@ fn on_request_verbose(r: zap.Request) void {
     r.sendBody("<html><body><h1>Hello from ZAP!!!</h1></body></html>") catch return;
 }
 
-const HtmlEndpoint = struct {
-    handler: Handler,
-    router: *zap.Router,
-    const Self = @This();
+// pub fn HydratedTemplate(Template: anytype) type {
+//     return struct {
+//         template: Template,
+//         const Self = @This();
 
-    pub fn init(router: *zap.Router, other: ?*Handler) !Self {
-        return .{ .router = router, .handler = Handler.init(onRequest, other) };
-    }
+//         pub fn from(template: Template) Self {
+//             return Self{ .template = template };
+//         }
 
-    pub fn getHandler(self: *Self) *Handler {
-        return &self.handler;
-    }
+//         pub fn on_req(self: *Self, r: zap.Request) void {
+//             var body = self.template.render() catch |err| {
+//                 std.debug.panic("Failed to render template: {any}", .{err});
+//             };
 
-    pub fn onRequest(handler: *Handler, r: zap.Request, context: *Context) bool {
-        const self: *Self = @fieldParentPtr("handler", handler);
+//             defer body.deinit();
 
-        const allocator = SharedAllocator.getAllocator();
-        if (context.hydration) |h| {
-            var tmp = HydrationTemplate.init(h, allocator) catch unreachable;
-            const render = tmp.render() catch unreachable;
-            std.debug.assert(r.isFinished() == false);
-            std.log.warn("Path: {s}\nQuery: {s}", .{
-                h.path,
-                h.query,
-            });
-            r.sendBody(render.items) catch unreachable;
-            std.debug.assert(r.isFinished() == true);
-            return true;
-        }
+//             hydrate_components(&body) catch |err| {
+//                 std.log.err("Failed to hydrate template: {any}", .{err});
+//                 return;
+//             };
 
-        const func = self.router.*.on_request_handler();
-        func(r);
+//             r.sendBody(body.items) catch |e| {
+//                 std.log.err("Failed to send body template: {}", .{e});
+//                 return;
+//             };
+//         }
+//     };
+// }
 
-        return true;
-    }
-};
+// fn hydrate_components(body: *std.ArrayList(u8)) !void {
+//     const allocator = SharedAllocator.getAllocator();
+//     const needed_components = routes.parse_for_needed_components(allocator, body.items) catch |e| {
+//         std.log.err("failed to parse for needed components body: {}\n", .{e});
+//         return;
+//     };
+
+//     for (needed_components) |opt| {
+//         const content = opt orelse break;
+//         body.appendSlice(content) catch |e| {
+//             std.log.err("failed to append component body to buffer: {}\n", .{e});
+//             return;
+//         };
+//     }
+// }
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{
@@ -140,6 +94,12 @@ pub fn main() !void {
     }){};
     const allocator = gpa.allocator();
     SharedAllocator.init(allocator);
+    var component_cache = try routes.init_component_cache(allocator, "components");
+    defer component_cache.deinit();
+    // const cached_components_content = try middleware.CachedComponentsContent.create(allocator, component_cache);
+    // defer cached_components_content.deinit();
+    // middleware.CachedComponentsContent.init(cached_components_content);
+
     const env_map = try std.process.getEnvMap(allocator);
 
     const port_str = env_map.get("PORT") orelse "3000";
@@ -147,28 +107,23 @@ pub fn main() !void {
 
     var router = zap.Router.init(allocator, .{ .not_found = not_found_handler });
     defer router.deinit();
-    var home = try routes.HomeTemplate.init(routes.Home{}, allocator);
-    // var about = try routes.AboutTemplate.init(routes.About{}, allocator);
 
     var music_info = try music.MusicInfo.build(allocator);
-    std.log.warn("got music info!", .{});
     defer music_info.deinit();
     var mtmp = try music.MusicTemplate.init(music_info, allocator);
-
+    var home = try routes.HomeTemplate.init(routes.Home{}, allocator);
     var info = try routes.InfoTemplate.init(routes.Info{}, allocator);
 
     try router.handle_func_unbound("/", on_request_verbose);
-
     try router.handle_func("/Home", &home, &routes.home_handler);
-    // try router.handle_func("/About", &about, &routes.about_handler);
     try router.handle_func("/Music", &mtmp, &music.music_handler);
     try router.handle_func("/Info", &info, &routes.info_handler);
 
-    var htmlHandler = try HtmlEndpoint.init(&router, null);
+    var htmlHandler = try middleware.HtmlEndpoint.init(&router, component_cache, null);
 
-    var hydrationHandler = HydrationMiddleware.init(htmlHandler.getHandler());
+    var hydrationHandler = middleware.HydrationMiddleware.init(htmlHandler.getHandler());
 
-    var listener = try zap.Middleware.Listener(Context).init(
+    var listener = try zap.Middleware.Listener(middleware.HydrationContext).init(
         .{
             .on_request = null, // must be null for middleware
             .public_folder = "serve",
@@ -195,9 +150,4 @@ pub fn main() !void {
 
 test {
     std.testing.refAllDecls(@This());
-}
-
-test "opendir" {
-    _ = zap;
-    try HydrationMiddleware.HydrationInfo.html_components();
 }

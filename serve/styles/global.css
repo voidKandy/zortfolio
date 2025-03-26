@@ -129,18 +129,3 @@ button {
 button:hover {
   background-color: var(--primary-orange);
 }
-
-
-
-#routes-container {
-  display: flex;
-  flex-direction: row;
-  gap: 1rem;
-
-}
-
-.route-button {
-  /* color: inherit !important; */
-  background-color: var(--primary-orange);
-  filter: saturate(500%);
-}
