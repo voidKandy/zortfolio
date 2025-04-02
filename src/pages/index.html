@@ -7,21 +7,10 @@
 
   <!-- HTMX Stuff -->
   <script src="https://unpkg.com/htmx.org@2.0.4"></script>
-  <script src="https://unpkg.com/hyperscript.org@0.9.13"></script>
 
   <!-- Misc -->
   <script type="module" src="https://md-block.verou.me/md-block.js"></script>
 
-
-  <!-- Web Components -->
-  <!-- <script src="components/navRouter.js"></script> -->
-  <!-- <script src="components/musicDisplay.js"></script> -->
-  <!-- <script src="components/displayBox.js"></script> -->
-  <!-- <script src="components/projectItem.js"></script> -->
-  <!-- <script src="components/easyTable.js"></script> -->
-  <!-- <script src="components/spinningShape.js"></script> -->
-  <!-- <script src="components/colorSquares.js"></script> -->
-  <!-- <script src="components/darkModeButton.js"></script> -->
 
   <!-- Styles -->
   <link rel="stylesheet" href="styles/crt.css">
@@ -63,7 +52,7 @@
                   border-bottom: 1px dashed;
                   border-color: light-dark(var(--light-border), var(--dark-border));
                   ">
-        <nav-router routes="Home, Music, Info" target="#route-content" current="||zz .path zz||"> </nav-router>
+        <nav-router routes="Home, Music, Info, Blog" target="#route-content" current="||zz .path zz||"> </nav-router>
         <dark-mode-button defaultDark="false" lightModeText="Dark Mode" darkModeText="Light Mode">
         </dark-mode-button>
       </div>

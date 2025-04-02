@@ -43,62 +43,16 @@ fn on_request_verbose(r: zap.Request) void {
     r.sendBody("<html><body><h1>Hello from ZAP!!!</h1></body></html>") catch return;
 }
 
-// pub fn HydratedTemplate(Template: anytype) type {
-//     return struct {
-//         template: Template,
-//         const Self = @This();
-
-//         pub fn from(template: Template) Self {
-//             return Self{ .template = template };
-//         }
-
-//         pub fn on_req(self: *Self, r: zap.Request) void {
-//             var body = self.template.render() catch |err| {
-//                 std.debug.panic("Failed to render template: {any}", .{err});
-//             };
-
-//             defer body.deinit();
-
-//             hydrate_components(&body) catch |err| {
-//                 std.log.err("Failed to hydrate template: {any}", .{err});
-//                 return;
-//             };
-
-//             r.sendBody(body.items) catch |e| {
-//                 std.log.err("Failed to send body template: {}", .{e});
-//                 return;
-//             };
-//         }
-//     };
-// }
-
-// fn hydrate_components(body: *std.ArrayList(u8)) !void {
-//     const allocator = SharedAllocator.getAllocator();
-//     const needed_components = routes.parse_for_needed_components(allocator, body.items) catch |e| {
-//         std.log.err("failed to parse for needed components body: {}\n", .{e});
-//         return;
-//     };
-
-//     for (needed_components) |opt| {
-//         const content = opt orelse break;
-//         body.appendSlice(content) catch |e| {
-//             std.log.err("failed to append component body to buffer: {}\n", .{e});
-//             return;
-//         };
-//     }
-// }
-
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{
         .thread_safe = true,
     }){};
     const allocator = gpa.allocator();
     SharedAllocator.init(allocator);
-    var component_cache = try routes.init_component_cache(allocator, "components");
+    try routes.StaticBlogsInfo.init(allocator);
+    defer routes.StaticBlogsInfo.deinit(allocator);
+    var component_cache = try middleware.init_component_cache(allocator, "components");
     defer component_cache.deinit();
-    // const cached_components_content = try middleware.CachedComponentsContent.create(allocator, component_cache);
-    // defer cached_components_content.deinit();
-    // middleware.CachedComponentsContent.init(cached_components_content);
 
     const env_map = try std.process.getEnvMap(allocator);
 
@@ -113,9 +67,16 @@ pub fn main() !void {
     var mtmp = try music.MusicTemplate.init(music_info, allocator);
     var home = try routes.HomeTemplate.init(routes.Home{}, allocator);
     var info = try routes.InfoTemplate.init(routes.Info{}, allocator);
+    for (routes.StaticBlogsInfo.get()) |i| {
+        const path = try std.fmt.allocPrint(allocator, "Blog/{s}", .{i.path});
+        std.log.warn("registering path: {s}\n", .{path});
+        defer allocator.free(path);
+        try router.handle_func_unbound(path, &routes.blog_handler);
+    }
 
     try router.handle_func_unbound("/", on_request_verbose);
     try router.handle_func("/Home", &home, &routes.home_handler);
+    try router.handle_func_unbound("/Blog", &routes.blog_handler);
     try router.handle_func("/Music", &mtmp, &music.music_handler);
     try router.handle_func("/Info", &info, &routes.info_handler);
 

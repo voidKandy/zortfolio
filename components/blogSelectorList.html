@@ -1,0 +1,58 @@
+<template id="blog-selector-list-template">
+  <div id="posts-container"></div>
+</template>
+<script>
+  class BlogSelectorList extends HTMLElement {
+    connectedCallback() {
+      const template = document.getElementById('blog-selector-list-template').content.cloneNode(true);
+      this.appendChild(template);
+      const posts = this.posts;
+      console.log(`Got posts: ${posts}`);
+      this.postsContainer = this.querySelector('#posts-container');
+
+      posts.forEach(post_name => {
+        const button = document.createElement('button');
+        button.textContent = post_name;
+        button.classList.add('selector-button');
+        button.classList.add('crt');
+        button.id = `${post_name}-selector`;
+        button.setAttribute("hx-get", `/Blog?post=${post_name}`);
+        button.setAttribute("hx-target", this.target);
+        button.setAttribute("hx-select", this.target);
+        button.setAttribute("hx-swap", "innerHTML");
+        button.setAttribute("hx-push-url", "true");
+
+        button.addEventListener("htmx:xhr:loadend", () => {
+          if (this.currentpost_name != post_name) {
+            this.prevpost_name = this.currrentpost_name;
+            this.currentpost_name = post_name;
+            <!-- this.updateButtonStyles(); -->
+          } else {
+            button.classList.add("active");
+          }
+        });
+
+        this.postsContainer.appendChild(button);
+      });
+    }
+
+    /**
+    * @returns {Array<string>}
+    **/
+    get posts() {
+      let postsattr =
+        this.getAttribute('posts');
+      console.log(`Attr: ${postsattr}`);
+      return (postsattr || '').split(',').map(route => route.trim());
+    }
+    get target() {
+      const target = this.getAttribute('target');
+      if (target == null) {
+        console.log("you should pass a target with a blog-selector-list component")
+      }
+      return target || "";
+    }
+
+  }
+  customElements.define('blog-selector-list', BlogSelectorList);
+</script>

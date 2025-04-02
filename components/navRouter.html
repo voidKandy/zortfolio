@@ -26,10 +26,15 @@
       const routes = this.routes;
       const defaultRoute = this.defaultRoute;
       /** @type {string} **/
-      let currentRoute = this.getAttribute('current')?.replace(/^\/+/, '') || defaultRoute;
+      const currentRoute = this.getAttribute('current')?.replace(/^\/+/, '') || defaultRoute;
+      const trueRoute = currentRoute.includes('?')
+        ? currentRoute.split("?")[0]
+        : currentRoute;
+
       this.currentRoute = currentRoute;
 
-      if (!routes.includes(currentRoute)) {
+
+      if (trueRoute == currentRoute && !routes.includes(currentRoute)) {
         console.error(`Route "${currentRoute}" not found. Falling back to default route.`);
         currentRoute = defaultRoute;
       }
