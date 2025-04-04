@@ -1,0 +1,198 @@
+const std = @import("std");
+const zap = @import("zap");
+const zemplate = @import("zemplate");
+const zdotenv = @import("zdotenv");
+const print = std.debug.print;
+const ArrayList = std.ArrayList;
+const warn = std.log.warn;
+
+const ctime = @cImport({
+    @cInclude("time.h");
+});
+
+pub const StaticBlogsInfo = struct {
+    const BlogPostInfo = struct {
+        last_modified: i128,
+        name: []u8,
+        path: []u8,
+        file_name: []u8,
+        content: []u8,
+
+        fn get_path(name: []u8, allocator: std.mem.Allocator) ![]u8 {
+            const name_cpy = try allocator.dupe(u8, name);
+            std.mem.replaceScalar(u8, name_cpy, ' ', '-');
+            return std.ascii.allocLowerString(allocator, name_cpy);
+        }
+    };
+    var posts: []BlogPostInfo = undefined;
+
+    const Self = @This();
+
+    /// MUST BE CALLED IN `main`
+    pub fn deinit(allocator: std.mem.Allocator) void {
+        for (posts) |p| {
+            allocator.free(p.content);
+            allocator.free(p.name);
+            allocator.free(p.path);
+            allocator.free(p.file_name);
+        }
+    }
+
+    /// The path (on the site) to this blog page
+    /// MUST BE CALLED IN `main`
+    pub fn init(allocator: std.mem.Allocator) !void {
+        var blog_dir = std.fs.cwd().openDir("blog", .{ .iterate = true }) catch |e| {
+            std.log.err("failed to open blog dir: {}\n", .{e});
+            return;
+        };
+        var iter = blog_dir.iterate();
+        var postlist = std.ArrayList(BlogPostInfo).init(allocator);
+        while (try iter.next()) |f| {
+            if (f.kind != .file) {
+                continue;
+            }
+            var split =
+                std.mem.splitBackwardsScalar(u8, f.name, '.');
+            const ext = split.first();
+            if (!std.mem.eql(u8, ext, "md")) {
+                continue;
+            }
+
+            const fullpath = try std.fmt.allocPrint(allocator, "blog/{s}", .{f.name});
+            const file = try std.fs.cwd().openFile(fullpath, .{});
+            defer file.close();
+            const last_modified = (try file.stat()).mtime;
+            const content = try file.readToEndAlloc(allocator, 8092);
+            const post_name: []u8 = blk: {
+                var spl = std.mem.splitScalar(u8, content, '\n');
+                const firstline =
+                    spl.first();
+                if (!std.mem.containsAtLeast(u8, firstline, 1, "#")) {
+                    const name = try allocator.alloc(u8, "Untitled".len);
+                    @memcpy(name, "Untitled");
+                    break :blk name;
+                }
+
+                const trimmed_header = std.mem.trim(u8, std.mem.trimLeft(u8, firstline, "#"), " \n");
+                const name = try allocator.alloc(u8, trimmed_header.len);
+                @memcpy(name, trimmed_header);
+                break :blk name;
+            };
+
+            const file_name = try allocator.alloc(u8, f.name.len);
+            @memcpy(file_name, f.name);
+            const path = try BlogPostInfo.get_path(post_name, allocator);
+
+            std.log.warn(
+                \\Appending Post:
+                \\ FileName: {s}
+                \\ PATH: {s}
+                \\ PostName: {s}
+                \\ Content:
+                \\ {s}
+            , .{ f.name, path, post_name, content });
+
+            const post = BlogPostInfo{
+                .last_modified = last_modified,
+                .path = path,
+                .file_name = file_name,
+                .name = post_name,
+                .content = content,
+            };
+            try postlist.append(post);
+        }
+
+        posts = try postlist.toOwnedSlice();
+    }
+
+    // static function we can pass to the listener later
+    pub fn get() []BlogPostInfo {
+        return posts;
+    }
+};
+
+pub const BlogPage = struct {
+    current_path: []const u8,
+    current_name: []const u8,
+    current_filename: []const u8,
+    current_last_modified: []u8,
+    current_content: []u8,
+    all_blog_paths: []const u8,
+};
+
+pub const BlogTemplate = zemplate.template.Template(BlogPage, @embedFile("pages/blog.html"));
+fn get_blog_page(allocator: std.mem.Allocator, query_opt: ?[]const u8) !BlogPage {
+    const all_posts = StaticBlogsInfo.get();
+
+    const postpath: []const u8 = blk: {
+        if (query_opt) |query| {
+            std.log.warn("QUERY: {s}", .{query});
+            var split =
+                std.mem.splitBackwardsSequence(u8, query, "post=");
+            const first = split.first();
+            if (std.mem.containsAtLeast(u8, first, 1, "&")) {
+                var s = std.mem.splitScalar(u8, first, '&');
+                break :blk s.first();
+            }
+            break :blk first;
+        } else {
+            break :blk all_posts[0].path;
+        }
+    };
+
+    std.log.warn("GOT POSTNAME: {s}\n", .{postpath});
+    var all_blog_paths_str = ArrayList(u8).init(allocator);
+    var post: ?StaticBlogsInfo.BlogPostInfo = null;
+    for (all_posts) |p| {
+        try all_blog_paths_str.appendSlice(try std.fmt.allocPrint(allocator, "{s},", .{p.path}));
+        if (std.mem.eql(u8, p.path, postpath)) {
+            post = p;
+        }
+    }
+
+    if (post == null) {
+        std.log.err("the name {s} does not have an associated post\n", .{postpath});
+        return error.NoMatchingPostname;
+    }
+
+    const all_blog_paths =
+        std.mem.trimRight(u8, try all_blog_paths_str.toOwnedSlice(), ", ");
+
+    std.log.warn(
+        \\POST:
+        \\  NAME: {s}
+        \\  FileName: {s}
+        \\  CONTENT: {s}
+        \\  ALL: {s}
+    , .{ post.?.name, post.?.file_name, post.?.content, all_blog_paths });
+    const last_modified_string = try std.fmt.allocPrint(allocator, "{d}", .{post.?.last_modified});
+
+    return BlogPage{
+        .current_path = post.?.path,
+        .current_name = post.?.name,
+        .current_filename = post.?.file_name,
+        .current_last_modified = last_modified_string,
+        .current_content = post.?.content,
+        .all_blog_paths = all_blog_paths,
+    };
+}
+
+pub fn blog_handler(r: zap.Request) void {
+    std.log.warn("IN BLOG HANDLER", .{});
+    const allocator = @import("root").SharedAllocator.getAllocator();
+
+    const blog = get_blog_page(allocator, r.query) catch |e| {
+        std.log.err("failed to get blog post: {}\n", .{e});
+        return;
+    };
+
+    var template = BlogTemplate.init(blog, allocator) catch {
+        r.sendBody("failed to render blog") catch return;
+        return;
+    };
+    var body = template.render() catch |err| {
+        std.debug.panic("Failed to render template: {}", .{err});
+    };
+    defer body.deinit();
+    r.sendBody(body.items) catch return;
+}

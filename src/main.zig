@@ -3,6 +3,7 @@ const zap = @import("zap");
 const zemplate = @import("zemplate");
 pub const routes = @import("routes.zig");
 const music = @import("music.zig");
+const blog = @import("blog.zig");
 const middleware = @import("middleware.zig");
 
 // just a way to share our allocator via callback
@@ -49,8 +50,8 @@ pub fn main() !void {
     }){};
     const allocator = gpa.allocator();
     SharedAllocator.init(allocator);
-    try routes.StaticBlogsInfo.init(allocator);
-    defer routes.StaticBlogsInfo.deinit(allocator);
+    try blog.StaticBlogsInfo.init(allocator);
+    defer blog.StaticBlogsInfo.deinit(allocator);
     var component_cache = try middleware.init_component_cache(allocator, "components");
     defer component_cache.deinit();
 
@@ -67,16 +68,10 @@ pub fn main() !void {
     var mtmp = try music.MusicTemplate.init(music_info, allocator);
     var home = try routes.HomeTemplate.init(routes.Home{}, allocator);
     var info = try routes.InfoTemplate.init(routes.Info{}, allocator);
-    for (routes.StaticBlogsInfo.get()) |i| {
-        const path = try std.fmt.allocPrint(allocator, "Blog/{s}", .{i.path});
-        std.log.warn("registering path: {s}\n", .{path});
-        defer allocator.free(path);
-        try router.handle_func_unbound(path, &routes.blog_handler);
-    }
 
     try router.handle_func_unbound("/", on_request_verbose);
     try router.handle_func("/Home", &home, &routes.home_handler);
-    try router.handle_func_unbound("/Blog", &routes.blog_handler);
+    try router.handle_func_unbound("/Blog", &blog.blog_handler);
     try router.handle_func("/Music", &mtmp, &music.music_handler);
     try router.handle_func("/Info", &info, &routes.info_handler);
 

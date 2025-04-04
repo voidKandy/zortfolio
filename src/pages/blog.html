@@ -9,6 +9,15 @@
     padding: 0.5rem 1rem;
   }
 
+  #rendered-blog header {
+    display: flex;
+    flex-direction: column;
+  }
+
+  #rendered-blog header h1 {
+    margin-bottom: 0.1rem;
+  }
+
   blog-selector-list {
     margin: 0.5rem;
   }
@@ -24,9 +33,28 @@
   <blog-selector-list posts="||zz .all_blog_paths zz||" target="#rendered-blog">
   </blog-selector-list>
   <div id="rendered-blog">
-    <h1>
-      ||zz .current_name zz||
-    </h1>
+    <script>
+      try {
+        const raw = "||zz .current_last_modified zz||";
+        if (raw && /^\d+$/.test(raw)) {
+          const nanos = BigInt(raw);
+          const millisBigInt = nanos / 1_000_000n;
+          const millis = Number(millisBigInt);
+          const utcString = new Date(millis).toUTCString();
+          document.getElementById("last-modified").textContent = utcString;
+        } else {
+          document.getElementById("last-modified").textContent = "Unknown date";
+        }
+      } catch (err) {
+        console.error("Error converting date:", err);
+      }
+    </script>
+    <header>
+      <h1>
+        ||zz .current_name zz||
+      </h1>
+      <p id="last-modified"></p>
+    </header>
     <md-block>
       ||zz .current_content zz||
     </md-block>
