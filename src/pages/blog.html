@@ -1,13 +1,34 @@
-<div>
-  <h1>
-    ||zz .current_name zz||
-  </h1>
+<style>
+  #blog-page {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+  }
+
+  #rendered-blog {
+    padding: 0.5rem 1rem;
+  }
+
+  blog-selector-list {
+    margin: 0.5rem;
+  }
+
+
+  @media (max-width: 930px) {
+    #blog-page {
+      flex-direction: column;
+    }
+  }
+</style>
+<div id="blog-page">
+  <blog-selector-list posts="||zz .all_blog_paths zz||" target="#rendered-blog">
+  </blog-selector-list>
   <div id="rendered-blog">
+    <h1>
+      ||zz .current_name zz||
+    </h1>
     <md-block>
       ||zz .current_content zz||
     </md-block>
   </div>
-  <blog-selector-list posts="||zz .all_blog_paths zz||" target="#rendered-blog">
-  </blog-selector-list>
-
 </div>

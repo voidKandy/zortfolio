@@ -48,7 +48,7 @@ pub const HydrationMiddleware = struct {
         if (r.getHeader("hx-request") == null) {
             context.hydration = HydrationInfo{
                 .path = r.path orelse "/",
-                .query = r.query orelse "/",
+                .query = r.query orelse "",
             };
 
             std.log.debug("\n\nHydration middleware set context!\nPath: {s}\nQuery: {s}\n", .{ context.hydration.?.path, context.hydration.?.query });

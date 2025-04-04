@@ -31,12 +31,18 @@
     }
 
     #route-content {
+      display: flex;
       /* Prevents it from affecting the height of #frame */
-      flex-grow: 0;
+      flex-grow: 1;
       /* Keeps content scrollable if it overflows */
       overflow-y: auto;
       overflow-x: hidden;
       height: 100%;
+    }
+
+    nav-router button {
+      background-color: var(--primary-orange);
+      filter: saturate(500%);
     }
   </style>
 </head>
@@ -44,7 +50,7 @@
 <body class="crt">
   ||zz .components zz||
   <div id="frame" class="box">
-    <div>
+    <div style="display:flex; flex-direction: column; flex-grow: 1;">
       <div style="display: flex;
                   flex-direction:row;
                   justify-content:space-between;
@@ -52,7 +58,8 @@
                   border-bottom: 1px dashed;
                   border-color: light-dark(var(--light-border), var(--dark-border));
                   ">
-        <nav-router routes="Home, Music, Info, Blog" target="#route-content" current="||zz .path zz||"> </nav-router>
+        <nav-router routes="Home, Music, Info, Blog" target="#route-content" current="||zz .path zz||"
+          query="||zz .query zz||"> </nav-router>
         <dark-mode-button defaultDark="false" lightModeText="Dark Mode" darkModeText="Light Mode">
         </dark-mode-button>
       </div>
