@@ -18,9 +18,9 @@ const HydrationTemplateInfo = struct {
 // NOTE: context struct members need to be optionals which default to null!!!
 pub const HydrationContext =
     struct {
-    hydration: ?HydrationInfo = null,
-    // cache: ?ComponentCache(u32, "components") = null,
-};
+        hydration: ?HydrationInfo = null,
+        // cache: ?ComponentCache(u32, "components") = null,
+    };
 
 const HydrationTemplate = zemplate.template.Template(HydrationTemplateInfo, @embedFile("pages/index.html"));
 // we create a Handler type based on our Context
@@ -40,7 +40,7 @@ pub const HydrationMiddleware = struct {
         return &self.handler;
     }
 
-    pub fn onRequest(handler: *Handler, r: zap.Request, context: *HydrationContext) bool {
+    pub fn onRequest(handler: *Handler, r: zap.Request, context: *HydrationContext) anyerror!bool {
         const self: *Self = @fieldParentPtr("handler", handler);
         _ = self;
 
@@ -66,10 +66,10 @@ pub const HtmlEndpoint = struct {
 
     pub fn init(router: *zap.Router, component_cache: ComponentCache, other: ?*Handler) !Self {
         const allocator = root.SharedAllocator.getAllocator();
-        var components = std.ArrayList(u8).init(allocator);
+        var components = try std.ArrayList(u8).initCapacity(allocator, 1024 * 1024);
         var iter = component_cache.valueIterator();
         while (iter.next()) |v| {
-            try components.appendSlice(v.content);
+            try components.appendSlice(allocator, v.content);
         }
         return .{ .router = router, .components = components, .handler = Handler.init(onRequest, other) };
     }
@@ -78,7 +78,7 @@ pub const HtmlEndpoint = struct {
         return &self.handler;
     }
 
-    pub fn onRequest(handler: *Handler, r: zap.Request, context: *HydrationContext) bool {
+    pub fn onRequest(handler: *Handler, r: zap.Request, context: *HydrationContext) anyerror!bool {
         const self: *Self = @fieldParentPtr("handler", handler);
 
         const allocator = root.SharedAllocator.getAllocator();
@@ -95,8 +95,8 @@ pub const HtmlEndpoint = struct {
             var tmp = HydrationTemplate.init(template_info, allocator) catch unreachable;
             std.debug.assert(r.isFinished() == false);
 
-            const render = tmp.render() catch unreachable;
-            defer render.deinit();
+            var render = tmp.render() catch unreachable;
+            defer render.deinit(allocator);
             // std.log.warn("Path: {s}\nQuery: {s}", .{
             //     h.path,
             //     h.query,
@@ -107,7 +107,7 @@ pub const HtmlEndpoint = struct {
         }
 
         const func = self.router.*.on_request_handler();
-        func(r);
+        try func(r);
 
         return true;
     }
@@ -144,7 +144,7 @@ const ComponentInfo = struct {
     }
 
     fn new(path: []const u8, allocator: std.mem.Allocator) !@This() {
-        var split = std.mem.splitBackwards(u8, path, ".");
+        var split = std.mem.splitBackwardsScalar(u8, path, '.');
 
         if (!std.mem.eql(u8, split.first(), "html")) {
             return error.NotHTML;

@@ -6,10 +6,6 @@ const print = std.debug.print;
 const ArrayList = std.ArrayList;
 const warn = std.log.warn;
 
-const ctime = @cImport({
-    @cInclude("time.h");
-});
-
 pub const StaticBlogsInfo = struct {
     const BlogPostInfo = struct {
         last_modified: i128,
@@ -46,7 +42,7 @@ pub const StaticBlogsInfo = struct {
             return;
         };
         var iter = blog_dir.iterate();
-        var postlist = std.ArrayList(BlogPostInfo).init(allocator);
+        var postlist = try std.ArrayList(BlogPostInfo).initCapacity(allocator, iter.buf.len);
         while (try iter.next()) |f| {
             if (f.kind != .file) {
                 continue;
@@ -99,10 +95,10 @@ pub const StaticBlogsInfo = struct {
                 .name = post_name,
                 .content = content,
             };
-            try postlist.append(post);
+            try postlist.append(allocator, post);
         }
 
-        posts = try postlist.toOwnedSlice();
+        posts = try postlist.toOwnedSlice(allocator);
     }
 
     // static function we can pass to the listener later
@@ -117,7 +113,8 @@ pub const BlogPage = struct {
     current_filename: []const u8,
     current_last_modified: []u8,
     current_content: []u8,
-    all_blog_paths: []const u8,
+    /// Serialized []BlogPostInfo
+    all_blogs_json: []u8,
 };
 
 pub const BlogTemplate = zemplate.template.Template(BlogPage, @embedFile("pages/blog.html"));
@@ -141,10 +138,17 @@ fn get_blog_page(allocator: std.mem.Allocator, query_opt: ?[]const u8) !BlogPage
     };
 
     std.log.warn("GOT POSTNAME: {s}\n", .{postpath});
-    var all_blog_paths_str = ArrayList(u8).init(allocator);
+    // var all_blog_json_str = ArrayList(u8).init(allocator);
     var post: ?StaticBlogsInfo.BlogPostInfo = null;
+
+    var out: std.io.Writer.Allocating = .init(allocator);
+    try std.json.Stringify.value(all_posts, .{ .whitespace = .indent_2 }, &out.writer);
+    var arr = out.toArrayList();
+    // defer arr.deinit(allocator);
+
+    // const json = try std.json.Stringify.valueAlloc(allocator, all_posts, .{});
     for (all_posts) |p| {
-        try all_blog_paths_str.appendSlice(try std.fmt.allocPrint(allocator, "{s},", .{p.path}));
+        //     try all_blog_json_str.appendSlice(json);
         if (std.mem.eql(u8, p.path, postpath)) {
             post = p;
         }
@@ -155,8 +159,8 @@ fn get_blog_page(allocator: std.mem.Allocator, query_opt: ?[]const u8) !BlogPage
         return error.NoMatchingPostname;
     }
 
-    const all_blog_paths =
-        std.mem.trimRight(u8, try all_blog_paths_str.toOwnedSlice(), ", ");
+    // const all_blog_paths =
+    // std.mem.trimRight(u8, try all_blog_paths_str.toOwnedSlice(), ", ");
 
     std.log.warn(
         \\POST:
@@ -164,7 +168,7 @@ fn get_blog_page(allocator: std.mem.Allocator, query_opt: ?[]const u8) !BlogPage
         \\  FileName: {s}
         \\  CONTENT: {s}
         \\  ALL: {s}
-    , .{ post.?.name, post.?.file_name, post.?.content, all_blog_paths });
+    , .{ post.?.name, post.?.file_name, post.?.content, arr.items });
     const last_modified_string = try std.fmt.allocPrint(allocator, "{d}", .{post.?.last_modified});
 
     return BlogPage{
@@ -173,11 +177,11 @@ fn get_blog_page(allocator: std.mem.Allocator, query_opt: ?[]const u8) !BlogPage
         .current_filename = post.?.file_name,
         .current_last_modified = last_modified_string,
         .current_content = post.?.content,
-        .all_blog_paths = all_blog_paths,
+        .all_blogs_json = try arr.toOwnedSlice(allocator),
     };
 }
 
-pub fn blog_handler(r: zap.Request) void {
+pub fn blog_handler(r: zap.Request) anyerror!void {
     std.log.warn("IN BLOG HANDLER", .{});
     const allocator = @import("root").SharedAllocator.getAllocator();
 
@@ -193,6 +197,6 @@ pub fn blog_handler(r: zap.Request) void {
     var body = template.render() catch |err| {
         std.debug.panic("Failed to render template: {}", .{err});
     };
-    defer body.deinit();
-    r.sendBody(body.items) catch return;
+    defer body.deinit(allocator);
+    try r.sendBody(body.items);
 }

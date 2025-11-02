@@ -24,8 +24,8 @@ pub const SharedAllocator = struct {
     }
 };
 
-fn not_found_handler(r: zap.Request) void {
-    r.setStatus(zap.StatusCode.not_found);
+fn not_found_handler(r: zap.Request) anyerror!void {
+    r.setStatus(zap.http.StatusCode.not_found);
 
     const body = "<html><body><h1>404 NOT FOUND</h1></body></html>";
     _ = r.sendBody(body) catch |err| {
@@ -33,7 +33,7 @@ fn not_found_handler(r: zap.Request) void {
     };
 }
 
-fn on_request_verbose(r: zap.Request) void {
+fn on_request_verbose(r: zap.Request) anyerror!void {
     if (r.path) |the_path| {
         std.debug.print("PATH: {s}\n", .{the_path});
     }
@@ -64,7 +64,7 @@ pub fn main() !void {
     defer router.deinit();
 
     var music_info = try music.MusicInfo.build(allocator);
-    defer music_info.deinit();
+    defer music_info.deinit(allocator);
     var mtmp = try music.MusicTemplate.init(music_info, allocator);
     var home = try routes.HomeTemplate.init(routes.Home{}, allocator);
     var info = try routes.InfoTemplate.init(routes.Info{}, allocator);
@@ -90,7 +90,7 @@ pub fn main() !void {
         hydrationHandler.getHandler(),
         SharedAllocator.getAllocator,
     );
-    zap.enableDebugLog();
+    // zap.enableDebugLog();
     listener.listen() catch |err| {
         std.debug.print("\nLISTEN ERROR: {any}\n", .{err});
         return;

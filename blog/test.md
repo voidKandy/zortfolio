@@ -1,2 +1,4 @@
-## Test
-Hello this is a test
+## Pokemon Survival Roguelike
+> forget the physics engine for now.
+
+

@@ -6,7 +6,8 @@
     //
     // It is redundant to include "zig" in this name because it is already
     // within the Zig package namespace.
-    .name = "zortfolio",
+    .name = .zortfolio,
+    .fingerprint = 0x3cc39afcb1d786fa,
 
     // This is a [Semantic Version](https://semver.org/).
     // In a future version of Zig it will be used for package deduplication.
@@ -23,17 +24,25 @@
     // Once all dependencies are fetched, `zig build` no longer requires
     // internet connectivity.
     .dependencies = .{
+        // .zdotenv = .{
+        //     .url = "https://github.com/BitlyTwiser/zdotenv/archive/refs/tags/v0.1.0.tar.gz",
+        //     .hash = "122016a556577271f89aea3e7a052abb7c9731f7478ac350e1e64b07c6620418528f",
+        // },
         .zap = .{
-            .url = "git+https://github.com/zigzap/zap?ref=v0.9.1#ae5c9278335d8e1133cd6d22707323dda712e120",
-            .hash = "12200223d76ab6cd32f75bc2e31463b0b429bb5b2b6fa4ce8f68dea494ca1ec3398b",
-        },
-        .zdotenv = .{
-            .url = "https://github.com/BitlyTwiser/zdotenv/archive/refs/tags/v0.1.0.tar.gz",
-            .hash = "122016a556577271f89aea3e7a052abb7c9731f7478ac350e1e64b07c6620418528f",
+            .url = "git+https://github.com/zigzap/zap?ref=v0.11.0#66c5dc42c781bbb8a9100afda3c7e69ee96eddf3",
+            .hash = "zap-0.10.6-GoeB8xCEJABLgoiZjWZMMT5TsoZ5OO2EZe6j24RTUYEH",
         },
         .zemplate = .{
-            .url = "git+https://github.com/voidKandy/zemplate#14cbf49362cab9c23f6a86c432d7472e73f19ee8",
-            .hash = "1220f0053885d73283082c24fcea299436a0dddcae99d0ad89285cf7b5e2d9517fcd",
+            .url = "git+https://github.com/voidKandy/zemplate#95d04e251b06a7eb5b587dd5578207712e33b3a9",
+            .hash = "zemplate-0.0.0-tSKpW-44AADJarflwsA0Uj7e2skXGu4YN1qFZ8aeF2wM",
+        },
+        .dotenv = .{
+            .url = "git+https://github.com/voidKandy/dotenv-zig#dc63b1be756433a6258cea34d43a57bbe8cea18c",
+            .hash = "dotenv-0.1.1-MkB8yOgdAAD6Np6jqKChP5wD-aPxtZwOhgIBpEVXQgI8",
+        },
+        .zdotenv = .{
+            .url = "git+https://github.com/voidKandy/zdotenv#cd14f7a3d3014b395069e9b4a9a0da504aa58c66",
+            .hash = "zdotenv-0.0.0-zLj1WiE0AACBNMevVZXF5qyCyQlc_qDXZKDE3lf03-AT",
         },
     },
     .paths = .{

@@ -28,11 +28,6 @@
       color: var(--light-color);
     }
 
-    #posts-container button.selected:not(:last-child) {
-      border-bottom: 2px solid var(--primary-orange) !important;
-    }
-
-
     @media (max-width: 930px) {
       #posts-container {
         flex-direction: row;
@@ -48,7 +43,7 @@
       const template = document.getElementById('blog-selector-list-template').content.cloneNode(true);
       this.appendChild(template);
       const posts = this.posts;
-      console.log(`Got posts: ${posts}`);
+
       this.selectorContainer = this.querySelector('#posts-container');
       this.selectorContainer.classList.add('crt');
 
@@ -56,24 +51,24 @@
       /** @type{string} **/
       this.currentPost = params.get("post") || posts[0];
 
-      posts.forEach(post_name => {
+      posts.forEach(post => {
         const button = document.createElement('button');
-        button.textContent = post_name;
-        button.id = `${post_name}-selector`;
-        button.setAttribute("hx-get", `/Blog?post=${post_name}`);
+        button.textContent = post.name;
+        button.id = `${post.name}-selector`;
+        button.setAttribute("hx-get", `/Blog?post=${post.path}`);
         button.setAttribute("hx-target", this.target);
         button.setAttribute("hx-select", this.target);
         button.setAttribute("hx-swap", "innerHTML");
         button.setAttribute("hx-push-url", "true");
 
         button.addEventListener("htmx:xhr:loadend", () => {
-          if (this.currentPost != post_name) {
-            this.currentPost = post_name;
+          if (this.currentPost != post) {
+            this.currentPost = post;
             this.updateButtonStyles();
           }
         });
 
-        if (this.currentPost == post_name) {
+        if (this.currentPost == post) {
           button.click();
         }
         this.selectorContainer.appendChild(button);
@@ -94,15 +89,28 @@
           button.classList.remove("selected");
       });
     }
-
     /**
-    * @returns {Array<string>}
+     * @typedef {Object} BlogPostInfo
+     * @property {BigInt} last_modified - Timestamp of when the post was last modified.
+     * @property {string} name - Name of the blog post.
+     * @property {string} path - Path to the blog post.
+     * @property {string} file_name - The name of the file for the blog post.
+     * @property {string} content - The content of the blog post.
+     */
+    /**
+    * @returns {BlogPostInfo[]}
     **/
     get posts() {
-      let postsattr =
+      let postsAttr =
         this.getAttribute('posts');
-      console.log(`Attr: ${postsattr}`);
-      return (postsattr || '').split(',').map(route => route.trim());
+      try {
+        const posts = JSON.parse(postsAttr || '[]');
+        return posts.sort((a, b) => b.last_modified - a.last_modified);
+      } catch (e) {
+        console.error('Error parsing posts:', e);
+        console.log(`Attr: ${postsAttr}`);
+        return [];
+      }
     }
     get target() {
       const target = this.getAttribute('target');

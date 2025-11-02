@@ -23,6 +23,27 @@
   }
 
 
+  md-block pre {
+    background-color: light-dark(var(--dark-bg), var(--light-bg));
+    color: light-dark(var(--dark-color), var(--light-color));
+    padding: 1rem;
+    border-radius: 4px;
+    filter: saturation(50%);
+  }
+
+  md-block blockquote {
+    border-left: 4px solid light-dark(var(--tertiary-blue), var(--secondary-red));
+    padding: 0.8rem 0.45rem;
+    margin: 1rem;
+    backdrop-filter: brightness(102%);
+    border-radius: 4px;
+  }
+
+  md-block blockquote p {
+    margin: 0;
+
+  }
+
   @media (max-width: 930px) {
     #blog-page {
       flex-direction: column;
@@ -30,7 +51,7 @@
   }
 </style>
 <div id="blog-page">
-  <blog-selector-list posts="||zz .all_blog_paths zz||" target="#rendered-blog">
+  <blog-selector-list posts='||zz .all_blogs_json zz||' target="#rendered-blog">
   </blog-selector-list>
   <div id="rendered-blog">
     <script>
@@ -48,6 +69,11 @@
       } catch (err) {
         console.error("Error converting date:", err);
       }
+      document.addEventListener("DOMContentLoaded", () => {
+        hljs.highlightAll();
+      });
+
+
     </script>
     <header>
       <h1>
