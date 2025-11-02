@@ -16,7 +16,7 @@ WORKDIR /deps
 # Download the Zig binary for the given version
 RUN curl -L https://ziglang.org/download/$ZIGVER/zig-x86_64-linux-$ZIGVER.tar.xz -o zig.tar.xz && \
     tar xf zig.tar.xz && \
-    mv zig-linux-x86_64-$ZIGVER /zig
+    mv zig-x86_64-linux-$ZIGVER /zig
 
 FROM alpine:3.13
 
