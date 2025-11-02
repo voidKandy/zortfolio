@@ -56,8 +56,6 @@ pub const SortedAlbumList = struct {
 
         if (self.list.first == null) {
             self.list.prepend(&album.node);
-            // self.first_album = album;
-            // self.len += 1;
             return;
         }
 
@@ -67,21 +65,10 @@ pub const SortedAlbumList = struct {
             if (earlierThan(album.*, current_album.*) orelse false) {
                 self.list.insertBefore(curr, &album.node);
                 return;
-                // album.node.next = &curr.node;
-                // album.node.prev = curr.node.prev;
-
-                // if (curr.node.prev) |prev_node|
-                //     prev_node.next = album.node
-                // else
-                //     self.first_album = album;
-
-                // curr.node.prev = album.node;
             }
 
             if (curr.next == null) {
                 self.list.append(&album.node);
-                // curr.node.next = &album.node;
-                // album.node.prev = &curr.node;
                 return;
             }
 
@@ -114,19 +101,6 @@ pub const MusicInfo = struct {
     const MusicComponentElementName = "music-display";
 
     pub fn build(allocator: std.mem.Allocator) !MusicInfo {
-        // var builder_gpa = std.heap.GeneralPurposeAllocator(.{}){};
-        // const builder_allocator = builder_gpa.allocator();
-
-        // var client = Client{
-        //     .allocator = allocator,
-        // };
-        // defer client.deinit();
-        // defer {
-        //     while (client.connection_pool.used.popFirst()) |conn| {
-        //         conn.data.close(allocator);
-        //     }
-        // }
-
         var builder = try MusicInfoBuilder.init(allocator);
         defer builder.deinit();
 
@@ -147,7 +121,6 @@ pub const MusicInfo = struct {
 
         if (albums.value.next) |uri| {
             try builder.getAlbumsRest(uri, token.value, &all_albums_sorted);
-            // std.log.debug("got rest: {d}\n", .{all_albums_sorted.len});
         }
 
         const albums_html = try renderAlbumsHTML(allocator, &all_albums_sorted);
