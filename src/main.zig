@@ -6,6 +6,10 @@ const music = @import("music.zig");
 const blog = @import("blog.zig");
 const middleware = @import("middleware.zig");
 
+pub const std_options = std.Options{
+    .log_level = .warn,
+};
+
 // just a way to share our allocator via callback
 pub const SharedAllocator = struct {
     // static

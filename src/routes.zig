@@ -4,7 +4,7 @@ const zemplate = @import("zemplate");
 const zdotenv = @import("zdotenv");
 const print = std.debug.print;
 const ArrayList = std.ArrayList;
-const warn = std.log.warn;
+const log = std.log.scoped(.routes);
 
 pub const Home = struct { about: []u8 = undefined };
 pub const HomeTemplate = zemplate.Template(Home, @embedFile("pages/home.html"));

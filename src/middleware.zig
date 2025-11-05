@@ -2,6 +2,7 @@ const std = @import("std");
 const root = @import("root");
 const zap = @import("zap");
 const zemplate = @import("zemplate");
+const log = std.log.scoped(.middleware);
 
 const HydrationInfo = struct {
     path: []const u8 = undefined,
@@ -51,7 +52,7 @@ pub const HydrationMiddleware = struct {
                 .query = r.query orelse "",
             };
 
-            std.log.debug("\n\nHydration middleware set context!\nPath: {s}\nQuery: {s}\n", .{ context.hydration.?.path, context.hydration.?.query });
+            log.debug("\n\nHydration middleware set context!\nPath: {s}\nQuery: {s}\n", .{ context.hydration.?.path, context.hydration.?.query });
         }
 
         return handler.handleOther(r, context);
@@ -83,7 +84,7 @@ pub const HtmlEndpoint = struct {
 
         const allocator = root.SharedAllocator.getAllocator();
         const components_copy = allocator.dupe(u8, self.components.items) catch |e| {
-            std.log.err("failed to dupe components: {}\n", .{e});
+            log.err("failed to dupe components: {}\n", .{e});
             return false;
         };
         var template_info = HydrationTemplateInfo{
@@ -97,10 +98,10 @@ pub const HtmlEndpoint = struct {
 
             var render = tmp.render() catch unreachable;
             defer render.deinit(allocator);
-            // std.log.warn("Path: {s}\nQuery: {s}", .{
-            //     h.path,
-            //     h.query,
-            // });
+            log.debug("Path: {s}\nQuery: {s}", .{
+                h.path,
+                h.query,
+            });
             r.sendBody(render.items) catch unreachable;
             std.debug.assert(r.isFinished() == true);
             return true;

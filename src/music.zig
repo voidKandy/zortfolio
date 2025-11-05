@@ -3,7 +3,7 @@ const zap = @import("zap");
 const zemplate = @import("zemplate");
 const zdotenv = @import("zdotenv");
 const print = std.debug.print;
-const warn = std.log.warn;
+const log = std.log.scoped(.music);
 
 const AlbumItemResponse = struct {
     images: []Image,
@@ -108,11 +108,11 @@ pub const MusicInfo = struct {
 
         const token = try builder.getSpotifyToken();
         defer token.deinit();
-        std.log.debug("got token\n", .{});
+        log.debug("got token\n", .{});
 
         const albums = try builder.getAlbumsFirst(token.value);
         defer albums.deinit();
-        std.log.debug("got albums\n", .{});
+        log.debug("got albums\n", .{});
 
         for (0..albums.value.items.len) |i| {
             const album = albums.value.items[i];
@@ -125,7 +125,7 @@ pub const MusicInfo = struct {
 
         const albums_html = try renderAlbumsHTML(allocator, &all_albums_sorted);
 
-        std.log.warn("should return music info", .{});
+        log.debug("should return music info", .{});
         return MusicInfo{ .albums_html = albums_html };
     }
 
@@ -262,9 +262,8 @@ const MusicInfoBuilder = struct {
         const body_reader = res.reader(response_transfer_buffer);
         const res_body = try body_reader.allocRemaining(self.allocator, .unlimited);
 
-        std.log.debug("sent\n", .{});
         if (res.head.status.class() == std.http.Status.Class.success) {
-            std.log.debug("token response json string: {s}\n", .{res_body});
+            log.debug("token response json string: {s}\n", .{res_body});
             const token = try std.json.parseFromSlice(
                 SpotifyToken,
                 self.allocator,
@@ -272,7 +271,6 @@ const MusicInfoBuilder = struct {
                 .{},
             );
 
-            std.log.debug("parsed json\n", .{});
             return token;
         } else {
             std.debug.panic("Failed to fetch token\nStatus: {any}\n", .{res.head.status});

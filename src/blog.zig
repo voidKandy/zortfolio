@@ -4,7 +4,7 @@ const zemplate = @import("zemplate");
 const zdotenv = @import("zdotenv");
 const print = std.debug.print;
 const ArrayList = std.ArrayList;
-const warn = std.log.warn;
+const log = std.log.scoped(.blog);
 
 pub const StaticBlogsInfo = struct {
     const BlogPostInfo = struct {
@@ -79,7 +79,7 @@ pub const StaticBlogsInfo = struct {
             @memcpy(file_name, f.name);
             const path = try BlogPostInfo.get_path(post_name, allocator);
 
-            std.log.warn(
+            log.debug(
                 \\Appending Post:
                 \\ FileName: {s}
                 \\ PATH: {s}
