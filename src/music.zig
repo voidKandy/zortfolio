@@ -164,7 +164,7 @@ pub const MusicInfo = struct {
     }
 };
 
-pub const MusicTemplate = zemplate.template.Template(MusicInfo, @embedFile("pages/music.html"));
+pub const MusicTemplate = zemplate.Template(MusicInfo, @embedFile("pages/music.html"));
 pub fn music_handler(ctx: *MusicTemplate, r: zap.Request) anyerror!void {
     var body = ctx.render() catch |err| {
         std.debug.panic("Failed to render template: {any}", .{err});

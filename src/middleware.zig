@@ -22,7 +22,7 @@ pub const HydrationContext =
         // cache: ?ComponentCache(u32, "components") = null,
     };
 
-const HydrationTemplate = zemplate.template.Template(HydrationTemplateInfo, @embedFile("pages/index.html"));
+const HydrationTemplate = zemplate.Template(HydrationTemplateInfo, @embedFile("pages/index.html"));
 // we create a Handler type based on our Context
 const Handler = zap.Middleware.Handler(HydrationContext);
 pub const HydrationMiddleware = struct {
@@ -92,7 +92,7 @@ pub const HtmlEndpoint = struct {
         if (context.hydration) |h| {
             template_info.path = h.path;
             template_info.query = h.query;
-            var tmp = HydrationTemplate.init(template_info, allocator) catch unreachable;
+            var tmp = HydrationTemplate.init(template_info, allocator);
             std.debug.assert(r.isFinished() == false);
 
             var render = tmp.render() catch unreachable;

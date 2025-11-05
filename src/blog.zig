@@ -117,7 +117,7 @@ pub const BlogPage = struct {
     all_blogs_json: []u8,
 };
 
-pub const BlogTemplate = zemplate.template.Template(BlogPage, @embedFile("pages/blog.html"));
+pub const BlogTemplate = zemplate.Template(BlogPage, @embedFile("pages/blog.html"));
 fn get_blog_page(allocator: std.mem.Allocator, query_opt: ?[]const u8) !BlogPage {
     const all_posts = StaticBlogsInfo.get();
 
@@ -190,10 +190,7 @@ pub fn blog_handler(r: zap.Request) anyerror!void {
         return;
     };
 
-    var template = BlogTemplate.init(blog, allocator) catch {
-        r.sendBody("failed to render blog") catch return;
-        return;
-    };
+    var template = BlogTemplate.init(blog, allocator);
     var body = template.render() catch |err| {
         std.debug.panic("Failed to render template: {}", .{err});
     };

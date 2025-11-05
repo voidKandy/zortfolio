@@ -33,8 +33,8 @@
             .hash = "zap-0.10.6-GoeB8xCEJABLgoiZjWZMMT5TsoZ5OO2EZe6j24RTUYEH",
         },
         .zemplate = .{
-            .url = "git+https://github.com/voidKandy/zemplate#95d04e251b06a7eb5b587dd5578207712e33b3a9",
-            .hash = "zemplate-0.0.0-tSKpW-44AADJarflwsA0Uj7e2skXGu4YN1qFZ8aeF2wM",
+            .url = "git+https://github.com/voidKandy/zemplate#e6a033a7825311ae2ad1dda87c9fd282c83db6c3",
+            .hash = "zemplate-0.0.0-tSKpW-U4AAB6fDUsG5QNo9dyiWQGxhMZwDggCbzT-e8P",
         },
         .dotenv = .{
             .url = "git+https://github.com/voidKandy/dotenv-zig#dc63b1be756433a6258cea34d43a57bbe8cea18c",

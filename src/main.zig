@@ -65,9 +65,9 @@ pub fn main() !void {
 
     var music_info = try music.MusicInfo.build(allocator);
     defer music_info.deinit(allocator);
-    var mtmp = try music.MusicTemplate.init(music_info, allocator);
-    var home = try routes.HomeTemplate.init(routes.Home{}, allocator);
-    var info = try routes.InfoTemplate.init(routes.Info{}, allocator);
+    var mtmp = music.MusicTemplate.init(music_info, allocator);
+    var home = routes.HomeTemplate.init(routes.Home{}, allocator);
+    var info = routes.InfoTemplate.init(routes.Info{}, allocator);
 
     try router.handle_func_unbound("/", on_request_verbose);
     try router.handle_func("/Home", &home, &routes.home_handler);
