@@ -2,7 +2,9 @@
   #blog-page {
     display: flex;
     flex-direction: row;
-    flex-grow: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
   }
 
   #rendered-blog {
@@ -14,21 +16,27 @@
     flex-direction: column;
   }
 
-  #rendered-blog header h1 {
-    margin-bottom: 0.1rem;
+
+  #last-modified {
+    margin-top: 0.2rem;
+    margin-bottom: 0.2rem;
   }
 
   blog-selector-list {
     margin: 0.5rem;
   }
 
+  md-block {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+  }
 
   md-block pre {
-    /*    background-color: light-dark(var(--dark-bg), var(--light-bg)); */
-    /* color: light-dark(var(--dark-color), var(--light-color)); */
     padding: 1rem;
     border-radius: 4px;
-    /* filter: saturation(50%); */
+    overflow-x: auto;
+    white-space: pre;
   }
 
   md-block blockquote {
@@ -44,14 +52,39 @@
 
   }
 
+  md-block img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    object-fit: contain;
+  }
+
+
   @media (max-width: 930px) {
     #blog-page {
       flex-direction: column;
     }
+
+    blog-selector-list {
+      justify-content: center;
+    }
+
+    #rendered-blog {
+      padding: 0.25rem 0.5rem;
+    }
+
+    md-block pre {
+      padding: 0.5rem;
+      border-radius: 2px;
+    }
+
   }
 </style>
 <div id="blog-page">
-  <blog-selector-list posts='||zz .all_blogs_json zz||' target="#rendered-blog">
+  <script type="application/json" id="all-blogs-json">
+    ||zz .all_blogs_json zz||
+  </script>
+  <blog-selector-list target="#rendered-blog">
   </blog-selector-list>
   <div id="rendered-blog">
     <script>
@@ -62,8 +95,19 @@
             const nanos = BigInt(raw);
             const millisBigInt = nanos / 1_000_000n;
             const millis = Number(millisBigInt);
-            const utcString = new Date(millis).toUTCString();
-            document.getElementById("last-modified").textContent = utcString;
+            const pstString = new Date(millis).toLocaleString("en-US", {
+              timeZone: "America/Los_Angeles",
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              second: "numeric",
+              hour12: true,
+              timeZoneName: "short"
+            });
+            document.getElementById("last-modified").textContent = pstString;
           } else {
             document.getElementById("last-modified").textContent = "Unknown date";
           }
@@ -74,9 +118,9 @@
       renderLastModified();
     </script>
     <header>
-      <h1>
-        ||zz .current_name zz||
-      </h1>
+      <small>
+        ||zz .current_filename zz||
+      </small>
       <p id="last-modified"></p>
     </header>
     <md-block>

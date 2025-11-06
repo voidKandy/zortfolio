@@ -2,3 +2,5 @@ zig-out/
 test/
 .zig-cache/
 .env
+.DS_Store
+

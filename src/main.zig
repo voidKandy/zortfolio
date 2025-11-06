@@ -54,8 +54,6 @@ pub fn main() !void {
     }){};
     const allocator = gpa.allocator();
     SharedAllocator.init(allocator);
-    try blog.StaticBlogsInfo.init(allocator);
-    defer blog.StaticBlogsInfo.deinit(allocator);
     var component_cache = try middleware.init_component_cache(allocator, "components");
     defer component_cache.deinit();
 

@@ -119,3 +119,18 @@ button {
 button:hover {
   background-color: var(--primary-orange);
 }
+
+@media (max-width: 930px) {
+
+  .box {
+    padding: 1rem;
+    margin: 1rem;
+    border-width: 3px;
+  }
+
+  .small-box {
+    padding: 1rem;
+    border-width: 3px;
+    margin: 2rem;
+  }
+}

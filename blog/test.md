@@ -1,4 +1,7 @@
-## Pokemon Survival Roguelike
-> forget the physics engine for now.
+## IMAGE
+> TEST!!
+
+![pyramid lake](imgs/pyramid-lake.png "isn't she talented")
+
 
 

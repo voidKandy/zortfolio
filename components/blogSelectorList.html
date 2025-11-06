@@ -3,7 +3,7 @@
     #posts-container {
       display: flex;
       flex-direction: column;
-      flex-shink: 1;
+      width: max-content;
       border: 1.5px solid light-dark(var(--light-border), var(--dark-border)) !important;
     }
 
@@ -30,8 +30,23 @@
 
     @media (max-width: 930px) {
       #posts-container {
+        margin-left: auto;
+        margin-right: auto;
         flex-direction: row;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
       }
+
+      #posts-container button {
+        flex: 0 0 auto;
+        border-bottom: 2px solid light-dark(var(--light-border), var(--dark-border)) !important;
+      }
+
+      #posts-container button:not(:last-child) {
+        border-right: 1px solid light-dark(var(--light-border), var(--dark-border)) !important;
+
+      }
+
     }
   </style>
   <div id="posts-container"></div>
@@ -45,6 +60,7 @@
    * @property {string} path - Path to the blog post.
    * @property {string} file_name - The name of the file for the blog post.
    * @property {string} content - The content of the blog post.
+
    */
   class BlogSelectorList extends HTMLElement {
     connectedCallback() {
@@ -54,7 +70,7 @@
 
       const posts = this.posts;
       this.selectorContainer = this.querySelector('#posts-container');
-      this.selectorContainer.classList.add('crt');
+      <!-- this.selectorContainer.classList.add('crt'); -->
       /** @type{string} **/
       this.currentPostPath = params.get("post") || posts[0].path;
 
@@ -62,12 +78,13 @@
         /** @param {BlogPostInfo} post */
         (post) => {
           const button = document.createElement('button');
+          button.classList.add('crt');
           button.textContent = post.name;
           button.id = `${post.path}-selector`;
           button.setAttribute("hx-get", `/Blog?post=${post.path}`);
           button.setAttribute("hx-target", this.target);
           button.setAttribute("hx-select", this.target);
-          button.setAttribute("hx-swap", "innerHTML");
+          button.setAttribute("hx-swap", "outerHTML");
           button.setAttribute("hx-push-url", "true");
 
           button.addEventListener("htmx:xhr:loadend", () => {
@@ -100,16 +117,17 @@
       });
     }
     /**
+      This component expects a script of `application/json` type filled with all posts as JSON to be passed alongside it
+      this script's id MUST be `all-blogs-json`
     * @returns {BlogPostInfo[]}
     **/
     get posts() {
-      let postsAttr =
-        this.getAttribute('posts');
+      const scriptTag = document.getElementById('all-blogs-json');
       try {
-        const posts = JSON.parse(postsAttr || '[]');
+        const posts = scriptTag ? JSON.parse(scriptTag.textContent) : [];
         return posts.sort((a, b) => b.last_modified - a.last_modified);
       } catch (e) {
-        console.error(`Error parsing posts: {e}\nAttr JSON: ${postsAttr}`);
+        console.error(`Error parsing posts: ${e}\nAttr JSON: ${postsAttr}`);
         return [];
       }
     }
