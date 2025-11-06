@@ -109,15 +109,14 @@
         const posts = JSON.parse(postsAttr || '[]');
         return posts.sort((a, b) => b.last_modified - a.last_modified);
       } catch (e) {
-        console.error('Error parsing posts:', e);
-        console.log(`Attr JSON: ${postsAttr}`);
+        console.error(`Error parsing posts: {e}\nAttr JSON: ${postsAttr}`);
         return [];
       }
     }
     get target() {
       const target = this.getAttribute('target');
       if (target == null) {
-        console.log("you should pass a target with a blog-selector-list component")
+        console.error("you should pass a target with a blog-selector-list component")
       }
       return target || "";
     }

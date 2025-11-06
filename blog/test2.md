@@ -8,10 +8,10 @@ Hello this is another test
 This is a note
 
 this is some code:
-```rust
-pub struct Something;
-
-fn do() {
-  return;
-}
+```zig
+pub const Something = struct {
+  fn do(self: @This()) void {
+    return;
+  }
+};
 ```

@@ -24,11 +24,11 @@
 
 
   md-block pre {
-    background-color: light-dark(var(--dark-bg), var(--light-bg));
-    color: light-dark(var(--dark-color), var(--light-color));
+    /*    background-color: light-dark(var(--dark-bg), var(--light-bg)); */
+    /* color: light-dark(var(--dark-color), var(--light-color)); */
     padding: 1rem;
     border-radius: 4px;
-    filter: saturation(50%);
+    /* filter: saturation(50%); */
   }
 
   md-block blockquote {
@@ -55,25 +55,23 @@
   </blog-selector-list>
   <div id="rendered-blog">
     <script>
-      try {
-        const raw = "||zz .current_last_modified zz||";
-        if (raw && /^\d+$/.test(raw)) {
-          const nanos = BigInt(raw);
-          const millisBigInt = nanos / 1_000_000n;
-          const millis = Number(millisBigInt);
-          const utcString = new Date(millis).toUTCString();
-          document.getElementById("last-modified").textContent = utcString;
-        } else {
-          document.getElementById("last-modified").textContent = "Unknown date";
+      function renderLastModified() {
+        try {
+          const raw = "||zz .current_last_modified zz||";
+          if (raw && /^\d+$/.test(raw)) {
+            const nanos = BigInt(raw);
+            const millisBigInt = nanos / 1_000_000n;
+            const millis = Number(millisBigInt);
+            const utcString = new Date(millis).toUTCString();
+            document.getElementById("last-modified").textContent = utcString;
+          } else {
+            document.getElementById("last-modified").textContent = "Unknown date";
+          }
+        } catch (err) {
+          console.error("Error converting date:", err);
         }
-      } catch (err) {
-        console.error("Error converting date:", err);
       }
-      document.addEventListener("DOMContentLoaded", () => {
-        hljs.highlightAll();
-      });
-
-
+      renderLastModified();
     </script>
     <header>
       <h1>

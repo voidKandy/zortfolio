@@ -10,10 +10,9 @@
 
   <!-- Misc -->
   <script type="module" src="https://md-block.verou.me/md-block.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/rust.min.js"></script>
 
+  <link href="styles/prism.css" rel="stylesheet">
+  <script src="scripts/prism.js"></script>
 
   <!-- Styles -->
   <link rel="stylesheet" href="styles/crt.css">
@@ -61,7 +60,7 @@
                   border-bottom: 1px dashed;
                   border-color: light-dark(var(--light-border), var(--dark-border));
                   ">
-        <nav-router routes="Home, Music, Info" target="#route-content" current="||zz .path zz||"
+        <nav-router routes="Home, Music, Info " target="#route-content" current="||zz .path zz||"
           query="||zz .query zz||"> </nav-router>
         <dark-mode-button defaultDark="false" lightModeText="Dark Mode" darkModeText="Light Mode">
         </dark-mode-button>
