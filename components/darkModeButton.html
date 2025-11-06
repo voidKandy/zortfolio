@@ -5,6 +5,7 @@
 <script>
   class DarkModeButton extends HTMLElement {
     connectedCallback() {
+
       const template = document.getElementById('dark-mode-button-template').content.cloneNode(true);
       this.appendChild(template);
       this.button = this.querySelector("#dark-mode-button");

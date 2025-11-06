@@ -62,17 +62,75 @@ pub const HydrationMiddleware = struct {
 pub const HtmlEndpoint = struct {
     handler: Handler,
     router: *zap.Router,
-    components: std.ArrayList(u8),
+    components: struct {
+        raw_html: []u8,
+        mrc: i128,
+    },
+
     const Self = @This();
 
-    pub fn init(router: *zap.Router, component_cache: ComponentCache, other: ?*Handler) !Self {
-        const allocator = root.SharedAllocator.getAllocator();
-        var components = try std.ArrayList(u8).initCapacity(allocator, 1024 * 1024);
+    const COMPONENTS_DIR = "components";
+
+    fn computeMRC(parent_path: []const u8) !i128 {
+        const cwd = std.fs.cwd();
+        var dir = try cwd.openDir(parent_path, .{ .iterate = true });
+
+        var latest: i128 = 0;
+        var it = dir.iterate();
+        while (try it.next()) |entry| {
+            if (entry.kind != .file) continue;
+            const stat = try dir.statFile(entry.name);
+            const modified = @as(i128, @intCast(stat.mtime));
+            if (modified > latest) latest = modified;
+        }
+        return latest;
+    }
+
+    fn readComponents(a: std.mem.Allocator, parent_path: []const u8) !std.StringHashMap(ComponentInfo) {
+        log.warn("reading components\n", .{});
+        var map = std.StringHashMap(ComponentInfo).init(a);
+        const cwd = std.fs.cwd();
+        var dir = try cwd.openDir(parent_path, .{ .iterate = true });
+        var iter = dir.iterate();
+
+        while (try iter.next()) |f| {
+            if (f.kind != .file) {
+                continue;
+            }
+
+            const info = try ComponentInfo.new(f.name, a);
+            try map.put(info.name, info);
+        }
+
+        return map;
+    }
+
+    fn getComponents(self: *Self, a: std.mem.Allocator) !void {
+        const mrc = try computeMRC(COMPONENTS_DIR);
+        const component_cache = try readComponents(a, COMPONENTS_DIR);
+        var components_str = try std.ArrayList(u8).initCapacity(a, 1024 * 1024);
         var iter = component_cache.valueIterator();
         while (iter.next()) |v| {
-            try components.appendSlice(allocator, v.content);
+            try components_str.appendSlice(a, v.content);
         }
-        return .{ .router = router, .components = components, .handler = Handler.init(onRequest, other) };
+        self.components = .{
+            .raw_html = try components_str.toOwnedSlice(a),
+            .mrc = mrc,
+        };
+    }
+
+    pub fn init(a: std.mem.Allocator, router: *zap.Router, other: ?*Handler) !Self {
+        var self = Self{
+            .router = router,
+            .handler = Handler.init(onRequest, other),
+            .components = undefined,
+        };
+        try self.getComponents(a);
+        return self;
+    }
+
+    pub fn deinit(self: *Self, a: std.mem.Allocator) void {
+        a.free(self.components.raw_html);
     }
 
     pub fn getHandler(self: *Self) *Handler {
@@ -80,15 +138,19 @@ pub const HtmlEndpoint = struct {
     }
 
     pub fn onRequest(handler: *Handler, r: zap.Request, context: *HydrationContext) anyerror!bool {
-        const self: *Self = @fieldParentPtr("handler", handler);
+        const self: *Self = @alignCast(@fieldParentPtr("handler", handler));
 
         const allocator = root.SharedAllocator.getAllocator();
-        const components_copy = allocator.dupe(u8, self.components.items) catch |e| {
+        const mrc = try computeMRC(COMPONENTS_DIR);
+        if (mrc > self.components.mrc)
+            try self.getComponents(allocator);
+
+        const html_cpy = allocator.dupe(u8, self.components.raw_html) catch |e| {
             log.err("failed to dupe components: {}\n", .{e});
             return false;
         };
         var template_info = HydrationTemplateInfo{
-            .components = components_copy,
+            .components = html_cpy,
         };
         if (context.hydration) |h| {
             template_info.path = h.path;
@@ -113,25 +175,6 @@ pub const HtmlEndpoint = struct {
         return true;
     }
 };
-
-const ComponentCache = std.StringHashMap(ComponentInfo);
-pub fn init_component_cache(a: std.mem.Allocator, parent_path: []const u8) !ComponentCache {
-    var map = ComponentCache.init(a);
-    const cwd = std.fs.cwd();
-    var dir = try cwd.openDir(parent_path, .{ .iterate = true });
-    var iter = dir.iterate();
-
-    while (try iter.next()) |f| {
-        if (f.kind != .file) {
-            continue;
-        }
-
-        const info = try ComponentInfo.new(f.name, a);
-        try map.put(info.name, info);
-    }
-
-    return map;
-}
 
 const ComponentInfo = struct {
     path: []u8,

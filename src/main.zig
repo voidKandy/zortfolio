@@ -54,8 +54,6 @@ pub fn main() !void {
     }){};
     const allocator = gpa.allocator();
     SharedAllocator.init(allocator);
-    var component_cache = try middleware.init_component_cache(allocator, "components");
-    defer component_cache.deinit();
 
     const env_map = try std.process.getEnvMap(allocator);
 
@@ -77,7 +75,8 @@ pub fn main() !void {
     try router.handle_func("/Music", &mtmp, &music.music_handler);
     try router.handle_func("/Info", &info, &routes.info_handler);
 
-    var htmlHandler = try middleware.HtmlEndpoint.init(&router, component_cache, null);
+    var htmlHandler = try middleware.HtmlEndpoint.init(allocator, &router, null);
+    defer htmlHandler.deinit(allocator);
 
     var hydrationHandler = middleware.HydrationMiddleware.init(htmlHandler.getHandler());
 
@@ -92,7 +91,6 @@ pub fn main() !void {
         hydrationHandler.getHandler(),
         SharedAllocator.getAllocator,
     );
-    // zap.enableDebugLog();
     listener.listen() catch |err| {
         std.debug.print("\nLISTEN ERROR: {any}\n", .{err});
         return;
