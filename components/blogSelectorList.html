@@ -38,41 +38,51 @@
 </template>
 
 <script>
+  /**
+   * @typedef {Object} BlogPostInfo
+   * @property {BigInt} last_modified - Timestamp of when the post was last modified.
+   * @property {string} name - Name of the blog post.
+   * @property {string} path - Path to the blog post.
+   * @property {string} file_name - The name of the file for the blog post.
+   * @property {string} content - The content of the blog post.
+   */
   class BlogSelectorList extends HTMLElement {
     connectedCallback() {
+      const params = new URLSearchParams(window.location.search);
       const template = document.getElementById('blog-selector-list-template').content.cloneNode(true);
       this.appendChild(template);
-      const posts = this.posts;
 
+      const posts = this.posts;
       this.selectorContainer = this.querySelector('#posts-container');
       this.selectorContainer.classList.add('crt');
-
-      const params = new URLSearchParams(window.location.search);
       /** @type{string} **/
-      this.currentPost = params.get("post") || posts[0];
+      this.currentPostPath = params.get("post") || posts[0].path;
 
-      posts.forEach(post => {
-        const button = document.createElement('button');
-        button.textContent = post.name;
-        button.id = `${post.name}-selector`;
-        button.setAttribute("hx-get", `/Blog?post=${post.path}`);
-        button.setAttribute("hx-target", this.target);
-        button.setAttribute("hx-select", this.target);
-        button.setAttribute("hx-swap", "innerHTML");
-        button.setAttribute("hx-push-url", "true");
+      posts.forEach(
+        /** @param {BlogPostInfo} post */
+        (post) => {
+          const button = document.createElement('button');
+          button.textContent = post.name;
+          button.id = `${post.path}-selector`;
+          button.setAttribute("hx-get", `/Blog?post=${post.path}`);
+          button.setAttribute("hx-target", this.target);
+          button.setAttribute("hx-select", this.target);
+          button.setAttribute("hx-swap", "innerHTML");
+          button.setAttribute("hx-push-url", "true");
 
-        button.addEventListener("htmx:xhr:loadend", () => {
-          if (this.currentPost != post) {
-            this.currentPost = post;
-            this.updateButtonStyles();
+          button.addEventListener("htmx:xhr:loadend", () => {
+            if (this.currentPostPath != post.path) {
+              this.currentPostPath = post.path;
+              this.updateButtonStyles();
+            }
+          });
+
+
+          if (this.currentPostPath == post.path) {
+            button.click();
           }
+          this.selectorContainer.appendChild(button);
         });
-
-        if (this.currentPost == post) {
-          button.click();
-        }
-        this.selectorContainer.appendChild(button);
-      });
       this.updateButtonStyles();
     }
 
@@ -83,20 +93,12 @@
         split.pop();
         const buttonIdName = split.join("-");
 
-        (buttonIdName === this.currentPost) ?
+        (buttonIdName === this.currentPostPath) ?
           button.classList.add("selected")
           :
           button.classList.remove("selected");
       });
     }
-    /**
-     * @typedef {Object} BlogPostInfo
-     * @property {BigInt} last_modified - Timestamp of when the post was last modified.
-     * @property {string} name - Name of the blog post.
-     * @property {string} path - Path to the blog post.
-     * @property {string} file_name - The name of the file for the blog post.
-     * @property {string} content - The content of the blog post.
-     */
     /**
     * @returns {BlogPostInfo[]}
     **/
@@ -108,7 +110,7 @@
         return posts.sort((a, b) => b.last_modified - a.last_modified);
       } catch (e) {
         console.error('Error parsing posts:', e);
-        console.log(`Attr: ${postsAttr}`);
+        console.log(`Attr JSON: ${postsAttr}`);
         return [];
       }
     }
