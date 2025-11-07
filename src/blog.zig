@@ -31,7 +31,7 @@ const BlogPostInfo = struct {
 
 pub fn getAllPosts(allocator: std.mem.Allocator) ![]BlogPostInfo {
     var blog_dir = std.fs.cwd().openDir("blog", .{ .iterate = true }) catch |e| {
-        std.log.err("failed to open blog dir: {}\n", .{e});
+        log.err("failed to open blog dir: {}\n", .{e});
         return error.NoBlogDirectory;
     };
     var iter = blog_dir.iterate();
@@ -101,7 +101,7 @@ fn getBlogPage(allocator: std.mem.Allocator, query_opt: ?[]const u8) !BlogPage {
 
     const postpath: []const u8 = blk: {
         if (query_opt) |query| {
-            std.log.warn("QUERY: {s}", .{query});
+            log.warn("QUERY: {s}", .{query});
             var split =
                 std.mem.splitBackwardsSequence(u8, query, "post=");
             const first = split.first();
@@ -115,31 +115,25 @@ fn getBlogPage(allocator: std.mem.Allocator, query_opt: ?[]const u8) !BlogPage {
         }
     };
 
-    std.log.warn("GOT POSTNAME: {s}\n", .{postpath});
-    // var all_blog_json_str = ArrayList(u8).init(allocator);
+    log.debug("GOT POSTNAME: {s}\n", .{postpath});
     var post: ?BlogPostInfo = null;
 
     var out: std.io.Writer.Allocating = .init(allocator);
     try std.json.Stringify.value(all_posts, .{ .whitespace = .indent_2 }, &out.writer);
     var arr = out.toArrayList();
 
-    // const json = try std.json.Stringify.valueAlloc(allocator, all_posts, .{});
     for (all_posts) |p| {
-        //     try all_blog_json_str.appendSlice(json);
         if (std.mem.eql(u8, p.path, postpath)) {
             post = p;
         }
     }
 
     if (post == null) {
-        std.log.err("the name {s} does not have an associated post\n", .{postpath});
+        log.err("the name {s} does not have an associated post\n", .{postpath});
         return error.NoMatchingPostname;
     }
 
-    // const all_blog_paths =
-    // std.mem.trimRight(u8, try all_blog_paths_str.toOwnedSlice(), ", ");
-
-    std.log.warn(
+    log.debug(
         \\POST:
         \\  NAME: {s}
         \\  FileName: {s}
@@ -158,12 +152,11 @@ fn getBlogPage(allocator: std.mem.Allocator, query_opt: ?[]const u8) !BlogPage {
     };
 }
 
-pub fn blog_handler(r: zap.Request) anyerror!void {
-    std.log.warn("IN BLOG HANDLER", .{});
+pub fn blogHandler(r: zap.Request) anyerror!void {
     const allocator = @import("root").SharedAllocator.getAllocator();
 
     const blog = getBlogPage(allocator, r.query) catch |e| {
-        std.log.err("failed to get blog post: {}\n", .{e});
+        log.err("failed to get blog post: {}\n", .{e});
         return;
     };
 

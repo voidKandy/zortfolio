@@ -28,24 +28,13 @@ pub const SharedAllocator = struct {
     }
 };
 
-fn not_found_handler(r: zap.Request) anyerror!void {
+fn notFoundHandler(r: zap.Request) anyerror!void {
     r.setStatus(zap.http.StatusCode.not_found);
 
     const body = "<html><body><h1>404 NOT FOUND</h1></body></html>";
     _ = r.sendBody(body) catch |err| {
         std.debug.print("Error sending response: {any}\n", .{err});
     };
-}
-
-fn on_request_verbose(r: zap.Request) anyerror!void {
-    if (r.path) |the_path| {
-        std.debug.print("PATH: {s}\n", .{the_path});
-    }
-
-    if (r.query) |the_query| {
-        std.debug.print("QUERY: {s}\n", .{the_query});
-    }
-    r.sendBody("<html><body><h1>Hello from ZAP!!!</h1></body></html>") catch return;
 }
 
 pub fn main() !void {
@@ -60,7 +49,7 @@ pub fn main() !void {
     const port_str = env_map.get("PORT") orelse "3000";
     const port = try std.fmt.parseInt(usize, port_str, 10);
 
-    var router = zap.Router.init(allocator, .{ .not_found = not_found_handler });
+    var router = zap.Router.init(allocator, .{ .not_found = notFoundHandler });
     defer router.deinit();
 
     var music_info = try music.MusicInfo.build(allocator);
@@ -69,11 +58,10 @@ pub fn main() !void {
     var home = routes.HomeTemplate.init(routes.Home{}, allocator);
     var info = routes.InfoTemplate.init(routes.Info{}, allocator);
 
-    try router.handle_func_unbound("/", on_request_verbose);
-    try router.handle_func("/Home", &home, &routes.home_handler);
-    try router.handle_func_unbound("/Blog", &blog.blog_handler);
-    try router.handle_func("/Music", &mtmp, &music.music_handler);
-    try router.handle_func("/Info", &info, &routes.info_handler);
+    try router.handle_func("/Home", &home, &routes.homeHandler);
+    try router.handle_func_unbound("/Blog", &blog.blogHandler);
+    try router.handle_func("/Music", &mtmp, &music.musicHandler);
+    try router.handle_func("/Info", &info, &routes.infoHandler);
 
     var htmlHandler = try middleware.HtmlEndpoint.init(allocator, &router, null);
     defer htmlHandler.deinit(allocator);

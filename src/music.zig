@@ -165,11 +165,11 @@ pub const MusicInfo = struct {
 };
 
 pub const MusicTemplate = zemplate.Template(MusicInfo, @embedFile("pages/music.html"));
-pub fn music_handler(ctx: *MusicTemplate, r: zap.Request) anyerror!void {
+pub fn musicHandler(ctx: *MusicTemplate, r: zap.Request) anyerror!void {
     var body = ctx.render() catch |err| {
         std.debug.panic("Failed to render template: {any}", .{err});
     };
-    print("body: {s}\n", .{body.items});
+    log.debug("body: {s}\n", .{body.items});
     defer body.deinit(ctx.allocator);
 
     r.sendBody(body.items) catch return;

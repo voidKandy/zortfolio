@@ -20,7 +20,6 @@ const HydrationTemplateInfo = struct {
 pub const HydrationContext =
     struct {
         hydration: ?HydrationInfo = null,
-        // cache: ?ComponentCache(u32, "components") = null,
     };
 
 const HydrationTemplate = zemplate.Template(HydrationTemplateInfo, @embedFile("pages/index.html"));
