@@ -27,7 +27,6 @@ const HydrationTemplate = zemplate.Template(HydrationTemplateInfo, @embedFile("p
 const Handler = zap.Middleware.Handler(HydrationContext);
 pub const HydrationMiddleware = struct {
     handler: Handler,
-
     const Self = @This();
 
     pub fn init(other: ?*Handler) Self {
@@ -58,6 +57,7 @@ pub const HydrationMiddleware = struct {
     }
 };
 
+const COMPONENTS_DIR = "components";
 pub const HtmlEndpoint = struct {
     handler: Handler,
     router: *zap.Router,
@@ -67,8 +67,6 @@ pub const HtmlEndpoint = struct {
     },
 
     const Self = @This();
-
-    const COMPONENTS_DIR = "components";
 
     fn computeMRC(parent_path: []const u8) !i128 {
         const cwd = std.fs.cwd();
@@ -216,7 +214,7 @@ const ComponentInfo = struct {
             i += 1;
         }
 
-        const fullpath = try std.fmt.allocPrint(allocator, "components/{s}", .{path});
+        const fullpath = try std.fmt.allocPrint(allocator, "{s}/{s}", .{ COMPONENTS_DIR, path });
         const file = try std.fs.cwd().openFile(fullpath, .{});
         defer file.close();
         const content = try file.readToEndAlloc(allocator, 8092);
