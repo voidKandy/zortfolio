@@ -3,4 +3,4 @@ test/
 .zig-cache/
 .env
 .DS_Store
-
+ssl-bundle/
