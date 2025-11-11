@@ -4,3 +4,10 @@ test/
 .env
 .DS_Store
 ssl-bundle/
+local_ssl/localCA.crt
+local_ssl/localCA.key
+local_ssl/localCA.srl
+local_ssl/localhost.crt
+local_ssl/localhost.csr
+local_ssl/localhost.ext
+local_ssl/localhost.key
