@@ -147,7 +147,7 @@ pub fn main() !void {
     const allocator = gpa.allocator();
     var router = Router.init(allocator);
     // try router.withTls(std.fs.cwd(), "local_ssl/localhost.crt", "local_ssl/localhost.key");
-    const addr = try std.net.Address.parseIp("127.0.0.1", 3000);
+    const addr = try std.net.Address.parseIp("0.0.0.0", 3000);
     try router.startServer(addr, .{ .reuse_address = true });
     defer router.deinit();
 
