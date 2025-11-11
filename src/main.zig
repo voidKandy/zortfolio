@@ -7,7 +7,8 @@ const blog = @import("blog.zig");
 const middleware = @import("middleware.zig");
 
 pub const std_options = std.Options{
-    .log_level = .warn,
+    .log_level = .info,
+    // .log_level = .warn,
 };
 
 // just a way to share our allocator via callback
@@ -37,7 +38,7 @@ fn notFoundHandler(r: zap.Request) anyerror!void {
     };
 }
 
-pub fn main() !void {
+pub fn oldMain() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{
         .thread_safe = true,
     }){};
@@ -94,4 +95,8 @@ pub fn main() !void {
 
 test {
     std.testing.refAllDecls(@This());
+}
+
+pub fn main() !void {
+    try @import("Router.zig").main();
 }

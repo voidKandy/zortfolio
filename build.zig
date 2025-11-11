@@ -10,6 +10,7 @@ pub fn build(b: *std.Build) void {
     });
     const zemplate = b.dependency("zemplate", .{});
     const zdotenv = b.dependency("zdotenv", .{});
+    const tls = b.dependency("tls", .{});
 
     const exe = b.addExecutable(.{
         .name = "zortfolio",
@@ -22,6 +23,7 @@ pub fn build(b: *std.Build) void {
 
     exe.root_module.addImport("zap", zap.module("zap"));
     exe.root_module.addImport("zemplate", zemplate.module("zemplate"));
+    exe.root_module.addImport("tls", tls.module("tls"));
     exe.root_module.addImport("zdotenv", zdotenv.module("zdotenv"));
 
     b.installArtifact(exe);
@@ -47,6 +49,7 @@ pub fn build(b: *std.Build) void {
     });
     exe_unit_tests.root_module.addImport("zdotenv", zdotenv.module("zdotenv"));
     exe_unit_tests.root_module.addImport("zap", zap.module("zap"));
+    exe_unit_tests.root_module.addImport("tls", tls.module("tls"));
     exe_unit_tests.root_module.addImport("zemplate", zemplate.module("zemplate"));
 
     const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
