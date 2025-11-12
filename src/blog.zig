@@ -2,7 +2,9 @@ const std = @import("std");
 const zap = @import("zap");
 const zemplate = @import("zemplate");
 const zdotenv = @import("zdotenv");
+const http = @import("http.zig");
 const ArrayList = std.ArrayList;
+const Request = std.http.Server.Request;
 const log = std.log.scoped(.blog);
 
 pub const BlogPage = struct {
@@ -152,18 +154,18 @@ fn getBlogPage(allocator: std.mem.Allocator, query_opt: ?[]const u8) !BlogPage {
     };
 }
 
-pub fn blogHandler(r: zap.Request) anyerror!void {
-    const allocator = @import("root").SharedAllocator.getAllocator();
-
-    const blog = getBlogPage(allocator, r.query) catch |e| {
-        log.err("failed to get blog post: {}\n", .{e});
+pub fn blogHandler(alloc_ptr: *std.mem.Allocator, r: Request, w: *std.Io.Writer) anyerror!void {
+    const parts = http.parse(&r);
+    const blog = getBlogPage(alloc_ptr.*, parts.query) catch |e| {
+        log.err("failed to get blog post: {any}\n", .{e});
         return;
     };
 
-    var template = BlogTemplate.init(blog, allocator);
+    var template = BlogTemplate.init(blog, alloc_ptr.*);
     var body = template.render() catch |err| {
         std.debug.panic("Failed to render template: {}", .{err});
     };
-    defer body.deinit(allocator);
-    try r.sendBody(body.items);
+    defer body.deinit(alloc_ptr.*);
+    try w.writeAll(body.items);
+    // try r.sendBody(body.items);
 }

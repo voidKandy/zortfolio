@@ -9,7 +9,34 @@ const BufferedWriter = @import("BufferedWriter.zig");
 const Request = std.http.Server.Request;
 const Connection = std.net.Server.Connection;
 
-const Dispatcher = struct {
+pub fn getHeader(r: Request, key: []const u8) ?[]const u8 {
+    var iter = r.iterateHeaders();
+
+    while (iter.next()) |h| {
+        if (std.ascii.eqlIgnoreCase(key, h.name)) {
+            return h.value;
+        }
+    }
+
+    return null;
+}
+
+pub fn parse(r: *const Request) struct { path: []const u8, query: ?[]const u8 } {
+    const target = r.head.target;
+    if (std.mem.indexOfScalar(u8, target, '?')) |i| {
+        return .{
+            .path = target[0..i],
+            .query = target[i + 1 ..],
+        };
+    } else {
+        return .{
+            .path = target,
+            .query = null,
+        };
+    }
+}
+
+pub const Dispatcher = struct {
     router: Router,
     files: FileServer,
     allocator: std.mem.Allocator,
@@ -249,42 +276,4 @@ fn serveWebSocket(ws: *std.http.Server.WebSocket) !void {
         }
         try ws.writeMessage(msg.data, msg.opcode);
     }
-}
-
-/// https://cookbook.ziglang.cc/05-03-http-server-std/
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{
-        .thread_safe = true,
-    }){};
-    defer if (gpa.detectLeaks()) log.err("LEAKS DETECTED IN MAIN ALLOCATOR\n", .{});
-    const allocator = gpa.allocator();
-    var dispatcher = Dispatcher.init(allocator, try std.fs.cwd().openDir("serve", .{ .iterate = true }));
-
-    try dispatcher.router.registerStatelessHandler("/home", struct {
-        fn handle(r: *Request, w: *BufferedWriter) anyerror!Router.RouteFuncReturn {
-            _ = try w.interface.write("Hello from home!");
-            _ = r;
-            return .Continue;
-        }
-    }.handle);
-
-    var info = @import("routes.zig").InfoTemplate.init(@import("routes.zig").Info{}, allocator);
-    try dispatcher.router.registerStatefullHandler("/info", &info, &struct {
-        fn handle(ctx: *@import("routes.zig").InfoTemplate, r: *Request, w: *BufferedWriter) anyerror!Router.RouteFuncReturn {
-            _ = r;
-            var body = ctx.render() catch |err| {
-                std.debug.panic("Failed to render template: {any}", .{err});
-            };
-            defer body.deinit(ctx.allocator);
-            _ = try w.interface.write(body.items);
-            return .Terminate;
-        }
-    }.handle);
-
-    // try router.withTls(std.fs.cwd(), "local_ssl/localhost.crt", "local_ssl/localhost.key");
-    const addr = try std.net.Address.parseIp("0.0.0.0", 3000);
-    try dispatcher.startServer(addr, .{ .reuse_address = true });
-    defer dispatcher.deinit();
-
-    try dispatcher.listen();
 }

@@ -5,10 +5,12 @@ const zdotenv = @import("zdotenv");
 const print = std.debug.print;
 const ArrayList = std.ArrayList;
 const log = std.log.scoped(.routes);
+const Request = std.http.Server.Request;
 
 pub const Home = struct { about: []u8 = undefined };
 pub const HomeTemplate = zemplate.Template(Home, @embedFile("pages/home.html"));
-pub fn homeHandler(ctx: *HomeTemplate, r: zap.Request) anyerror!void {
+pub fn homeHandler(ctx: *HomeTemplate, r: Request, w: *std.Io.Writer) anyerror!void {
+    _ = r;
     const file = try std.fs.cwd().openFile("./about.md", .{});
     const buffer = try ctx.allocator.alloc(u8, 1024 * 256);
     var reader = file.reader(&.{});
@@ -19,16 +21,19 @@ pub fn homeHandler(ctx: *HomeTemplate, r: zap.Request) anyerror!void {
         std.debug.panic("Failed to render template: {any}", .{err});
     };
     defer body.deinit(ctx.allocator);
-    r.sendBody(body.items) catch return;
+    // r.sendBody(body.items) catch return;
+    try w.writeAll(body.items);
 }
 
 pub const Info = struct {};
 pub const InfoTemplate = zemplate.Template(Info, @embedFile("pages/info.html"));
-pub fn infoHandler(ctx: *InfoTemplate, r: zap.Request) anyerror!void {
+pub fn infoHandler(ctx: *InfoTemplate, r: Request, w: *std.Io.Writer) anyerror!void {
+    _ = r;
     var body = ctx.render() catch |err| {
         std.debug.panic("Failed to render template: {any}", .{err});
     };
     defer body.deinit(ctx.allocator);
 
-    r.sendBody(body.items) catch return;
+    try w.writeAll(body.items);
+    // r.sendBody(body.items) catch return;
 }

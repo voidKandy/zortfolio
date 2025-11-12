@@ -4,6 +4,7 @@ const zemplate = @import("zemplate");
 const zdotenv = @import("zdotenv");
 const print = std.debug.print;
 const log = std.log.scoped(.music);
+const Request = std.http.Server.Request;
 
 const AlbumItemResponse = struct {
     images: []Image,
@@ -165,14 +166,17 @@ pub const MusicInfo = struct {
 };
 
 pub const MusicTemplate = zemplate.Template(MusicInfo, @embedFile("pages/music.html"));
-pub fn musicHandler(ctx: *MusicTemplate, r: zap.Request) anyerror!void {
+pub fn musicHandler(ctx: *MusicTemplate, r: Request, w: *std.Io.Writer) anyerror!void {
+    _ = r;
     var body = ctx.render() catch |err| {
         std.debug.panic("Failed to render template: {any}", .{err});
     };
     log.debug("body: {s}\n", .{body.items});
     defer body.deinit(ctx.allocator);
 
-    r.sendBody(body.items) catch return;
+    try w.writeAll(body.items);
+
+    // r.sendBody(body.items) catch return;
 }
 
 const Encoder = std.base64.standard.Encoder;
