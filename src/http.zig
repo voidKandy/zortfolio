@@ -2,13 +2,15 @@ const std = @import("std");
 const log = std.log.scoped(.http);
 const tls = @import("tls");
 const mime = @import("mime");
+
 const FileServer = @import("FileServer.zig");
+const BufferedWriter = @import("BufferedWriter.zig");
 const Request = std.http.Server.Request;
 const Connection = std.net.Server.Connection;
 
+const RoutesMap = std.StringHashMap(*const fn (r: *Request, writer: std.Io.Writer) anyerror!void);
+
 const Router = struct {
-    const RoutesMap = std.StringHashMap(*const fn (r: *Request, writer: std.Io.Writer) anyerror!void);
-    // const FileMap = std.(*const fn (r: *Request, writer: std.Io.Writer) anyerror!void);
     routes: RoutesMap,
     files: FileServer,
     allocator: std.mem.Allocator,
@@ -67,11 +69,19 @@ const Router = struct {
                 \\
             , .{conn.address});
 
-            // var server = try secureConnection(self.tls_auth.?, conn);
-            _ = std.Thread.spawn(.{}, handleConnection, .{
-                self.allocator,
+            var gpa = std.heap.GeneralPurposeAllocator(.{
+                .thread_safe = true,
+            }){};
+            var ctx = try ConnectionContext.init(
+                gpa.allocator(),
+                &self,
                 conn,
-                self.tls_auth,
+            );
+
+            errdefer ctx.deinit();
+
+            _ = std.Thread.spawn(.{}, ConnectionContext.handleConnection, .{
+                &ctx,
             }) catch |err| {
                 log.err("unable to spawn connection thread: {s}", .{@errorName(err)});
                 conn.stream.close();
@@ -81,104 +91,153 @@ const Router = struct {
     }
 };
 
-const ConnectionContext = struct {};
+const ConnectionType = union(enum) {
+    http: std.net.Server.Connection,
+    https: *tls.Connection,
+};
 
-fn handleConnection(a: std.mem.Allocator, conn: std.net.Server.Connection, auth: ?*tls.config.CertKeyPair) !void {
-    var tls_conn: ?*tls.Connection = null;
-    defer {
-        conn.stream.close();
-        if (tls_conn) |c| c.close() catch |e| {
-            log.err(
-                \\ Failed to close TLS connection: {any}
-            , .{e});
+/// Data associated with a connection to a single client
+const ConnectionContext = struct {
+    allocator: std.mem.Allocator,
+    recv_buf: []u8,
+    send_buf: []u8,
+    connection: std.net.Server.Connection,
+    tls: ?*tls.Connection = null,
+    auth: *const ?*tls.config.CertKeyPair,
+    file_server: FileServer,
+    routes: RoutesMap,
+
+    const Self = @This();
+    const RECV_BUF_SIZE = 16 * 1024;
+    const SEND_BUF_SIZE = 16 * 1024;
+
+    fn init(a: std.mem.Allocator, router: *const *Router, conn: std.net.Server.Connection) std.mem.Allocator.Error!Self {
+        return .{
+            .allocator = a,
+            .connection = conn,
+            .file_server = try router.*.files.clone(a),
+            .routes = try router.*.routes.clone(),
+            .auth = &router.*.tls_auth,
+            .recv_buf = try a.alloc(u8, RECV_BUF_SIZE),
+            .send_buf = try a.alloc(u8, SEND_BUF_SIZE),
         };
     }
 
-    const recv_buf = try a.alloc(u8, 16 * 1024);
-    const send_buf = try a.alloc(u8, 16 * 1024);
-    defer a.free(recv_buf);
-    defer a.free(send_buf);
+    fn deinit(self: *Self) void {
+        self.file_server.deinit(self.allocator);
+        self.routes.deinit();
 
-    var server: std.http.Server = undefined;
+        self.connection.stream.close();
+        if (self.tls) |conn| {
+            conn.close() catch |e| {
+                log.err(
+                    \\ Failed to close TLS connection: {any}
+                , .{e});
+            };
+            self.allocator.destroy(conn);
+        }
 
-    if (auth) |auth_ptr| {
-        var tls_c = try tls.serverFromStream(conn.stream, .{ .auth = auth_ptr });
-        tls_conn = &tls_c;
-
-        var r = tls_conn.?.reader(recv_buf);
-        var w = tls_conn.?.writer(send_buf);
-        server = std.http.Server.init(&r.interface, &w.interface);
-        log.warn(
-            \\ Created HTTPS connection
-        , .{});
-    } else {
-        var r = conn.stream.reader(recv_buf);
-        var w = conn.stream.writer(send_buf);
-        server = std.http.Server.init(r.interface(), &w.interface);
-        log.warn(
-            \\ Created HTTP connection
-        , .{});
+        self.allocator.free(self.recv_buf);
+        self.allocator.free(self.send_buf);
     }
 
-    while (true) {
-        switch (server.reader.state) {
-            .ready => {
-                var req = server.receiveHead() catch |err| switch (err) {
-                    error.HttpConnectionClosing => break,
-                    else => {
-                        log.err("receiveHead err: {any}", .{err});
-                        break;
-                    },
-                };
+    fn handleConnection(self: *Self) !void {
+        var server: std.http.Server = undefined;
+        defer self.deinit();
 
-                switch (req.upgradeRequested()) {
-                    .other => |other_protocol| {
-                        log.err("Not supported protocol, {s}", .{other_protocol});
-                        return;
-                    },
-                    .websocket => |key| {
-                        var ws = try req.respondWebSocket(.{ .key = key orelse "" });
-                        try serveWebSocket(&ws);
-                    },
-                    .none => {
-                        try serveHTTP(a, &server, &req);
-                    },
-                }
-            },
-            .closing => break,
-            else => {},
+        if (self.auth.*) |auth_ptr| {
+            const tls_conn = try self.allocator.create(tls.Connection);
+            tls_conn.* = try tls.serverFromStream(self.connection.stream, .{ .auth = auth_ptr });
+            self.tls = tls_conn;
+
+            var r = self.tls.?.reader(self.recv_buf);
+            var w = self.tls.?.writer(self.send_buf);
+            server = std.http.Server.init(&r.interface, &w.interface);
+            log.warn(
+                \\ Created HTTPS connection
+            , .{});
+        } else {
+            var r = self.connection.stream.reader(self.recv_buf);
+            var w = self.connection.stream.writer(self.send_buf);
+            server = std.http.Server.init(r.interface(), &w.interface);
+            log.warn(
+                \\ Created HTTP connection
+            , .{});
+        }
+
+        while (true) {
+            switch (server.reader.state) {
+                .ready => {
+                    var req = server.receiveHead() catch |err| switch (err) {
+                        error.HttpConnectionClosing => break,
+                        else => {
+                            log.err("receiveHead err: {any}", .{err});
+                            break;
+                        },
+                    };
+
+                    switch (req.upgradeRequested()) {
+                        .other => |other_protocol| {
+                            log.err("Not supported protocol, {s}", .{other_protocol});
+                            return;
+                        },
+                        .websocket => |key| {
+                            var ws = try req.respondWebSocket(.{ .key = key orelse "" });
+                            try serveWebSocket(&ws);
+                        },
+                        .none => {
+                            try self.serveHTTP(&server, &req);
+                        },
+                    }
+                },
+                .closing => break,
+                else => {},
+            }
         }
     }
-}
 
-fn serveHTTP(a: std.mem.Allocator, server: *std.http.Server, request: *Request) !void {
-    log.warn("serving...", .{});
-    var body: ?[]u8 = null;
-    defer if (body) |b| a.free(b);
+    fn serveHTTP(self: *Self, server: *std.http.Server, request: *Request) !void {
+        var body: ?[]u8 = null;
+        defer if (body) |b| self.allocator.free(b);
 
-    if (request.head.content_length) |content_len| {
-        log.warn("reading content len: {d}\n", .{content_len});
-        const buf = a.alloc(u8, content_len) catch @panic("out of memory");
-        var reader = server.reader.bodyReader(buf, request.head.transfer_encoding, content_len);
-        body = try reader.readAlloc(a, content_len);
-        log.info("Received body: {s}", .{body.?});
-    }
-
-    switch (request.head.method) {
-        .POST => {},
-        .GET => {},
-        .HEAD, .PUT, .DELETE, .CONNECT, .OPTIONS, .TRACE, .PATCH => {},
-    }
-
-    try request.respond(
-        "Hello World from Zig HTTP server",
-        .{
-            .extra_headers = &.{
-                .{ .name = "custom-header", .value = "custom value" },
+        if (self.file_server.serve(request)) |_| {
+            return;
+        } else |err| switch (err) {
+            error.FileNotFound => {},
+            else => {
+                log.err(
+                    \\ File server encountered an error: {any}
+                , .{err});
+                return err;
             },
-        },
-    );
-}
+        }
+
+        if (request.head.content_length) |content_len| {
+            log.warn("reading content len: {d}\n", .{content_len});
+            const buf = self.allocator.alloc(u8, content_len) catch @panic("out of memory");
+            var reader = server.reader.bodyReader(buf, request.head.transfer_encoding, content_len);
+            body = try reader.readAlloc(self.allocator, content_len);
+            log.info("Received body: {s}", .{body.?});
+        }
+        log.info(
+            \\ PATH: {s}
+        , .{request.head.target});
+
+        if (self.routes.get(request.head.target)) |func| {
+            const writer = try BufferedWriter.init(self.allocator);
+            try func(request, writer.interface);
+        }
+
+        try request.respond(
+            "Hello World from Zig HTTP server",
+            .{
+                .extra_headers = &.{
+                    .{ .name = "custom-header", .value = "custom value" },
+                },
+            },
+        );
+    }
+};
 
 fn serveWebSocket(ws: *std.http.Server.WebSocket) !void {
     try ws.writeMessage("Hello from Zig WebSocket server", .text);
@@ -199,7 +258,8 @@ pub fn main() !void {
     }){};
     const allocator = gpa.allocator();
     var router = Router.init(allocator, try std.fs.cwd().openDir("serve", .{ .iterate = true }));
-    // try router.withTls(std.fs.cwd(), "local_ssl/localhost.crt", "local_ssl/localhost.key");
+
+    try router.withTls(std.fs.cwd(), "local_ssl/localhost.crt", "local_ssl/localhost.key");
     const addr = try std.net.Address.parseIp("0.0.0.0", 3000);
     try router.startServer(addr, .{ .reuse_address = true });
     defer router.deinit();

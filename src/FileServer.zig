@@ -21,7 +21,8 @@ pub const InitError = error{
     OutOfMemory,
     InitFailed,
 };
-pub const ServeError = error{FileNotFound} || std.http.Server.Response.WriteError;
+
+pub const ServeError = error{FileNotFound} || std.http.Server.Request.ExpectContinueError;
 
 pub fn init(options: Options) InitError!Self {
     const gpa = options.allocator;
@@ -141,6 +142,16 @@ pub fn deinit(s: *Self, allocator: std.mem.Allocator) void {
     s.files.deinit(allocator);
     s.bytes.deinit(allocator);
     s.* = undefined;
+}
+
+pub fn clone(self: *Self, a: std.mem.Allocator) std.mem.Allocator.Error!Self {
+    const bytes = try self.bytes.clone(a);
+    return Self{
+        .bytes = bytes,
+        .files = try self.files.cloneContext(a, FileNameContext{
+            .bytes = bytes.items,
+        }),
+    };
 }
 
 pub const File = struct {
