@@ -4,14 +4,13 @@ const tls = @import("tls");
 const mime = @import("mime");
 
 const FileServer = @import("FileServer.zig");
+const Router = @import("Router.zig");
 const BufferedWriter = @import("BufferedWriter.zig");
 const Request = std.http.Server.Request;
 const Connection = std.net.Server.Connection;
 
-const RoutesMap = std.StringHashMap(*const fn (r: *Request, writer: std.Io.Writer) anyerror!void);
-
-const Router = struct {
-    routes: RoutesMap,
+const Dispatcher = struct {
+    router: Router,
     files: FileServer,
     allocator: std.mem.Allocator,
     tls_auth: ?*tls.config.CertKeyPair = null,
@@ -28,7 +27,7 @@ const Router = struct {
                 .allocator = a,
                 .root_dir = dir,
             }) catch @panic("failed to init file server"),
-            .routes = RoutesMap.init(a),
+            .router = Router.init(a),
             .allocator = a,
         };
     }
@@ -40,7 +39,7 @@ const Router = struct {
     }
 
     pub fn deinit(self: *Self) void {
-        self.routes.deinit();
+        self.router.deinit();
         if (self.tls_auth) |a| {
             a.deinit(self.allocator);
             self.allocator.destroy(a);
@@ -59,7 +58,6 @@ const Router = struct {
         var gpa = std.heap.GeneralPurposeAllocator(.{
             .thread_safe = true,
         }){};
-
         defer if (gpa.detectLeaks()) log.err("LEAKS DETECTED IN CONNECTION THREAD ALLOCATOR\n", .{});
 
         while (true) {
@@ -110,19 +108,19 @@ const ConnectionContext = struct {
     connection: ConnectionType,
     auth: *const ?*tls.config.CertKeyPair,
     file_server: FileServer,
-    routes: RoutesMap,
+    router: Router,
 
     const Self = @This();
     const RECV_BUF_SIZE = 16 * 1024;
     const SEND_BUF_SIZE = 16 * 1024;
 
-    fn init(a: std.mem.Allocator, router: *const *Router, conn: std.net.Server.Connection) std.mem.Allocator.Error!Self {
+    fn init(a: std.mem.Allocator, dispatcher: *const *Dispatcher, conn: std.net.Server.Connection) std.mem.Allocator.Error!Self {
         return .{
             .allocator = a,
             .connection = .{ .http = conn },
-            .file_server = try router.*.files.clone(a),
-            .routes = try router.*.routes.clone(),
-            .auth = &router.*.tls_auth,
+            .file_server = try dispatcher.*.files.clone(a),
+            .router = try dispatcher.*.router.clone(),
+            .auth = &dispatcher.*.tls_auth,
             .recv_buf = try a.alloc(u8, RECV_BUF_SIZE),
             .send_buf = try a.alloc(u8, SEND_BUF_SIZE),
         };
@@ -145,7 +143,7 @@ const ConnectionContext = struct {
         self.allocator.free(self.recv_buf);
         self.allocator.free(self.send_buf);
         self.file_server.deinit(self.allocator);
-        self.routes.deinit();
+        self.router.deinit();
     }
 
     fn handleConnection(self: *Self) !void {
@@ -236,23 +234,8 @@ const ConnectionContext = struct {
             body = try reader.readAlloc(self.allocator, content_len);
             log.info("Received body: {s}", .{body.?});
         }
-        log.info(
-            \\ PATH: {s}
-        , .{request.head.target});
 
-        if (self.routes.get(request.head.target)) |func| {
-            const writer = try BufferedWriter.init(self.allocator);
-            try func(request, writer.interface);
-        }
-
-        try request.respond(
-            "Hello World from Zig HTTP server",
-            .{
-                .extra_headers = &.{
-                    .{ .name = "custom-header", .value = "custom value" },
-                },
-            },
-        );
+        try self.router.dispatch(self.allocator, request);
     }
 };
 
@@ -275,12 +258,33 @@ pub fn main() !void {
     }){};
     defer if (gpa.detectLeaks()) log.err("LEAKS DETECTED IN MAIN ALLOCATOR\n", .{});
     const allocator = gpa.allocator();
-    var router = Router.init(allocator, try std.fs.cwd().openDir("serve", .{ .iterate = true }));
+    var dispatcher = Dispatcher.init(allocator, try std.fs.cwd().openDir("serve", .{ .iterate = true }));
+
+    try dispatcher.router.registerStatelessHandler("/home", struct {
+        fn handle(r: *Request, w: *BufferedWriter) anyerror!Router.RouteFuncReturn {
+            _ = try w.interface.write("Hello from home!");
+            _ = r;
+            return .Continue;
+        }
+    }.handle);
+
+    var info = @import("routes.zig").InfoTemplate.init(@import("routes.zig").Info{}, allocator);
+    try dispatcher.router.registerStatefullHandler("/info", &info, &struct {
+        fn handle(ctx: *@import("routes.zig").InfoTemplate, r: *Request, w: *BufferedWriter) anyerror!Router.RouteFuncReturn {
+            _ = r;
+            var body = ctx.render() catch |err| {
+                std.debug.panic("Failed to render template: {any}", .{err});
+            };
+            defer body.deinit(ctx.allocator);
+            _ = try w.interface.write(body.items);
+            return .Terminate;
+        }
+    }.handle);
 
     // try router.withTls(std.fs.cwd(), "local_ssl/localhost.crt", "local_ssl/localhost.key");
     const addr = try std.net.Address.parseIp("0.0.0.0", 3000);
-    try router.startServer(addr, .{ .reuse_address = true });
-    defer router.deinit();
+    try dispatcher.startServer(addr, .{ .reuse_address = true });
+    defer dispatcher.deinit();
 
-    try router.listen();
+    try dispatcher.listen();
 }

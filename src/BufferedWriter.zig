@@ -26,8 +26,8 @@ pub fn init(allocator: std.mem.Allocator) !Self {
     return self;
 }
 
-pub fn deinit(self: *Self) void {
-    self.buffer.deinit();
+pub fn deinit(self: *Self, a: std.mem.Allocator) void {
+    self.buffer.deinit(a);
 }
 
 fn drain(io_w: *std.Io.Writer, data: []const []const u8, splat: usize) error{WriteFailed}!usize {
