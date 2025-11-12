@@ -56,6 +56,12 @@ const Router = struct {
     }
 
     pub fn listen(self: *Self) !void {
+        var gpa = std.heap.GeneralPurposeAllocator(.{
+            .thread_safe = true,
+        }){};
+
+        defer if (gpa.detectLeaks()) log.err("LEAKS DETECTED IN CONNECTION THREAD ALLOCATOR\n", .{});
+
         while (true) {
             var conn = self.server.accept() catch |err| {
                 log.err(
@@ -63,30 +69,30 @@ const Router = struct {
                 , .{@errorName(err)});
                 continue;
             };
+            errdefer conn.stream.close();
 
             log.info(
                 \\ Connected to client at address: {f}
                 \\
             , .{conn.address});
 
-            var gpa = std.heap.GeneralPurposeAllocator(.{
-                .thread_safe = true,
-            }){};
-            var ctx = try ConnectionContext.init(
+            const ctx = self.allocator.create(ConnectionContext) catch @panic("out of memory");
+            ctx.* = try ConnectionContext.init(
                 gpa.allocator(),
                 &self,
                 conn,
             );
 
-            errdefer ctx.deinit();
-
-            _ = std.Thread.spawn(.{}, ConnectionContext.handleConnection, .{
-                &ctx,
+            const thread = std.Thread.spawn(.{}, ConnectionContext.handleConnection, .{
+                ctx,
             }) catch |err| {
                 log.err("unable to spawn connection thread: {s}", .{@errorName(err)});
-                conn.stream.close();
+                ctx.deinit();
+                self.allocator.destroy(ctx);
                 continue;
             };
+
+            thread.detach();
         }
     }
 };
@@ -101,8 +107,7 @@ const ConnectionContext = struct {
     allocator: std.mem.Allocator,
     recv_buf: []u8,
     send_buf: []u8,
-    connection: std.net.Server.Connection,
-    tls: ?*tls.Connection = null,
+    connection: ConnectionType,
     auth: *const ?*tls.config.CertKeyPair,
     file_server: FileServer,
     routes: RoutesMap,
@@ -114,7 +119,7 @@ const ConnectionContext = struct {
     fn init(a: std.mem.Allocator, router: *const *Router, conn: std.net.Server.Connection) std.mem.Allocator.Error!Self {
         return .{
             .allocator = a,
-            .connection = conn,
+            .connection = .{ .http = conn },
             .file_server = try router.*.files.clone(a),
             .routes = try router.*.routes.clone(),
             .auth = &router.*.tls_auth,
@@ -124,21 +129,23 @@ const ConnectionContext = struct {
     }
 
     fn deinit(self: *Self) void {
-        self.file_server.deinit(self.allocator);
-        self.routes.deinit();
-
-        self.connection.stream.close();
-        if (self.tls) |conn| {
-            conn.close() catch |e| {
-                log.err(
-                    \\ Failed to close TLS connection: {any}
-                , .{e});
-            };
-            self.allocator.destroy(conn);
+        switch (self.connection) {
+            .http => |c| c.stream.close(),
+            .https => |c| {
+                c.close() catch |e| {
+                    log.err(
+                        \\ Failed to close TLS connection: {any}
+                    , .{e});
+                };
+                self.allocator.destroy(c);
+            },
         }
 
+        self.auth = undefined;
         self.allocator.free(self.recv_buf);
         self.allocator.free(self.send_buf);
+        self.file_server.deinit(self.allocator);
+        self.routes.deinit();
     }
 
     fn handleConnection(self: *Self) !void {
@@ -147,29 +154,33 @@ const ConnectionContext = struct {
 
         if (self.auth.*) |auth_ptr| {
             const tls_conn = try self.allocator.create(tls.Connection);
-            tls_conn.* = try tls.serverFromStream(self.connection.stream, .{ .auth = auth_ptr });
-            self.tls = tls_conn;
+            tls_conn.* = try tls.serverFromStream(self.connection.http.stream, .{ .auth = auth_ptr });
+            self.connection = .{ .https = tls_conn };
 
-            var r = self.tls.?.reader(self.recv_buf);
-            var w = self.tls.?.writer(self.send_buf);
+            var r = self.connection.https.reader(self.recv_buf);
+            var w = self.connection.https.writer(self.send_buf);
             server = std.http.Server.init(&r.interface, &w.interface);
             log.warn(
                 \\ Created HTTPS connection
             , .{});
         } else {
-            var r = self.connection.stream.reader(self.recv_buf);
-            var w = self.connection.stream.writer(self.send_buf);
+            var r = self.connection.http.stream.reader(self.recv_buf);
+            var w = self.connection.http.stream.writer(self.send_buf);
             server = std.http.Server.init(r.interface(), &w.interface);
             log.warn(
                 \\ Created HTTP connection
             , .{});
         }
-
         while (true) {
             switch (server.reader.state) {
                 .ready => {
                     var req = server.receiveHead() catch |err| switch (err) {
-                        error.HttpConnectionClosing => break,
+                        error.HttpConnectionClosing => {
+                            log.warn(
+                                \\ Closing Connection
+                            , .{});
+                            break;
+                        },
                         else => {
                             log.err("receiveHead err: {any}", .{err});
                             break;
@@ -190,7 +201,13 @@ const ConnectionContext = struct {
                         },
                     }
                 },
-                .closing => break,
+                .closing => {
+                    log.warn(
+                        \\ Connection Closed
+                    , .{});
+                    break;
+                },
+
                 else => {},
             }
         }
@@ -256,10 +273,11 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{
         .thread_safe = true,
     }){};
+    defer if (gpa.detectLeaks()) log.err("LEAKS DETECTED IN MAIN ALLOCATOR\n", .{});
     const allocator = gpa.allocator();
     var router = Router.init(allocator, try std.fs.cwd().openDir("serve", .{ .iterate = true }));
 
-    try router.withTls(std.fs.cwd(), "local_ssl/localhost.crt", "local_ssl/localhost.key");
+    // try router.withTls(std.fs.cwd(), "local_ssl/localhost.crt", "local_ssl/localhost.key");
     const addr = try std.net.Address.parseIp("0.0.0.0", 3000);
     try router.startServer(addr, .{ .reuse_address = true });
     defer router.deinit();

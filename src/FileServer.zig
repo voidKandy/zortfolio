@@ -139,8 +139,8 @@ pub fn init(options: Options) InitError!Self {
 }
 
 pub fn deinit(s: *Self, allocator: std.mem.Allocator) void {
-    s.files.deinit(allocator);
     s.bytes.deinit(allocator);
+    s.files.deinit(allocator);
     s.* = undefined;
 }
 
