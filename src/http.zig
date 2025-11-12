@@ -1,21 +1,31 @@
 const std = @import("std");
 const log = std.log.scoped(.http);
 const tls = @import("tls");
+const mime = @import("mime");
+const FileServer = @import("FileServer.zig");
 const Request = std.http.Server.Request;
 const Connection = std.net.Server.Connection;
 
 const Router = struct {
     const RoutesMap = std.StringHashMap(*const fn (r: *Request, writer: std.Io.Writer) anyerror!void);
-
+    // const FileMap = std.(*const fn (r: *Request, writer: std.Io.Writer) anyerror!void);
     routes: RoutesMap,
+    files: FileServer,
     allocator: std.mem.Allocator,
     tls_auth: ?*tls.config.CertKeyPair = null,
     server: std.net.Server = undefined,
 
     const Self = @This();
 
-    pub fn init(a: std.mem.Allocator) Self {
+    pub fn init(
+        a: std.mem.Allocator,
+        dir: std.fs.Dir,
+    ) Self {
         return .{
+            .files = FileServer.init(.{
+                .allocator = a,
+                .root_dir = dir,
+            }) catch @panic("failed to init file server"),
             .routes = RoutesMap.init(a),
             .allocator = a,
         };
@@ -70,6 +80,8 @@ const Router = struct {
         }
     }
 };
+
+const ConnectionContext = struct {};
 
 fn handleConnection(a: std.mem.Allocator, conn: std.net.Server.Connection, auth: ?*tls.config.CertKeyPair) !void {
     var tls_conn: ?*tls.Connection = null;
@@ -139,21 +151,6 @@ fn handleConnection(a: std.mem.Allocator, conn: std.net.Server.Connection, auth:
     }
 }
 
-/// https://cookbook.ziglang.cc/05-03-http-server-std/
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{
-        .thread_safe = true,
-    }){};
-    const allocator = gpa.allocator();
-    var router = Router.init(allocator);
-    // try router.withTls(std.fs.cwd(), "local_ssl/localhost.crt", "local_ssl/localhost.key");
-    const addr = try std.net.Address.parseIp("0.0.0.0", 3000);
-    try router.startServer(addr, .{ .reuse_address = true });
-    defer router.deinit();
-
-    try router.listen();
-}
-
 fn serveHTTP(a: std.mem.Allocator, server: *std.http.Server, request: *Request) !void {
     log.warn("serving...", .{});
     var body: ?[]u8 = null;
@@ -193,4 +190,19 @@ fn serveWebSocket(ws: *std.http.Server.WebSocket) !void {
         }
         try ws.writeMessage(msg.data, msg.opcode);
     }
+}
+
+/// https://cookbook.ziglang.cc/05-03-http-server-std/
+pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{
+        .thread_safe = true,
+    }){};
+    const allocator = gpa.allocator();
+    var router = Router.init(allocator, try std.fs.cwd().openDir("serve", .{ .iterate = true }));
+    // try router.withTls(std.fs.cwd(), "local_ssl/localhost.crt", "local_ssl/localhost.key");
+    const addr = try std.net.Address.parseIp("0.0.0.0", 3000);
+    try router.startServer(addr, .{ .reuse_address = true });
+    defer router.deinit();
+
+    try router.listen();
 }

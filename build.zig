@@ -9,6 +9,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     const zemplate = b.dependency("zemplate", .{});
+    const mime = b.dependency("mime", .{});
     const zdotenv = b.dependency("zdotenv", .{});
     const tls = b.dependency("tls", .{});
 
@@ -23,6 +24,7 @@ pub fn build(b: *std.Build) void {
 
     exe.root_module.addImport("zap", zap.module("zap"));
     exe.root_module.addImport("zemplate", zemplate.module("zemplate"));
+    exe.root_module.addImport("mime", mime.module("mime"));
     exe.root_module.addImport("tls", tls.module("tls"));
     exe.root_module.addImport("zdotenv", zdotenv.module("zdotenv"));
 
@@ -51,6 +53,7 @@ pub fn build(b: *std.Build) void {
     exe_unit_tests.root_module.addImport("zap", zap.module("zap"));
     exe_unit_tests.root_module.addImport("tls", tls.module("tls"));
     exe_unit_tests.root_module.addImport("zemplate", zemplate.module("zemplate"));
+    exe_unit_tests.root_module.addImport("mime", mime.module("mime"));
 
     const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
     const test_step = b.step("test", "Run unit tests");
