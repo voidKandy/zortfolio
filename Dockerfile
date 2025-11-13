@@ -17,7 +17,7 @@ ENV PATH="/usr/local/zig:${PATH}"
 WORKDIR /zortfolio
 RUN curl -L https://github.com/voidKandy/zortfolio/archive/refs/tags/latest.tar.gz \
     -o zortfolio.tar && \
-    tar xf zortfolio.tar && \
+    tar xf zortfolio.tar.gz --strip-components=1 && \
     rm zortfolio.tar
 
 # Build the project
