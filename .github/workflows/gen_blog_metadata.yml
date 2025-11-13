@@ -20,6 +20,7 @@ jobs:
           tar xf zig.tar.xz
           sudo mv zig-x86_64-linux-0.15.1 /usr/local/zig
           export PATH="/usr/local/zig:$PATH"
+          echo "/usr/local/zig" >> $GITHUB_PATH
 
       - name: Build blog metadata
         run: zig build metadata
