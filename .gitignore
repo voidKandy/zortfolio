@@ -12,3 +12,4 @@ local_ssl/localhost.crt
 local_ssl/localhost.csr
 local_ssl/localhost.ext
 local_ssl/localhost.key
+blogsMetadata.json
