@@ -70,6 +70,7 @@ pub fn dispatch(self: *Self, a: std.mem.Allocator, request: *Request) !void {
 
     if (needs_hydration) {
         var component_buffer = try std.ArrayList(u8).initCapacity(a, 1024);
+        try Components.tryUpdate(a);
         var iter = Components.get().map.iterator();
         while (iter.next()) |entry| {
             const info = entry.value_ptr.*;
@@ -184,20 +185,42 @@ const Components = struct {
     const COMPONENTS_DIR = "components";
     /// Components' Info mapped by their names hashed
     map: std.AutoHashMap(u64, Info),
-    // currently we don't do anything with this
-    mrc: i128,
+    mrc: std.atomic.Value(i128),
+    should_update: std.atomic.Value(bool),
 
     var singleton: @This() = undefined;
     var default_required_component_keys: std.AutoHashMap(u64, void) = undefined;
     pub fn init(a: std.mem.Allocator) void {
         singleton = .{
             .map = readComponents(a, COMPONENTS_DIR) catch @panic("failed to init components singleton"),
-            .mrc = computeMRC(COMPONENTS_DIR) catch @panic("failed to get mrc"),
+            .mrc = std.atomic.Value(i128).init(computeMRC(COMPONENTS_DIR) catch @panic("failed to get mrc")),
+            .should_update = std.atomic.Value(bool).init(false),
         };
+
+        const thread = std.Thread.spawn(.{}, backgroundWatcher, .{ &singleton.mrc, &singleton.should_update }) catch @panic("failed to spawn watcher thread");
+        thread.detach();
+    }
+    /// Background thread function
+    fn backgroundWatcher(mrc_ptr: *std.atomic.Value(i128), update_ptr: *std.atomic.Value(bool)) void {
+        while (true) {
+            std.Thread.sleep(5_000_000_000); // sleep 5 seconds (nano)
+            const new_mrc = computeMRC(COMPONENTS_DIR) catch continue;
+            if (new_mrc > mrc_ptr.load(.seq_cst)) {
+                mrc_ptr.store(new_mrc, .seq_cst);
+                update_ptr.store(true, .seq_cst);
+            }
+        }
     }
 
     pub fn get() @This() {
         return singleton;
+    }
+
+    pub fn tryUpdate(a: std.mem.Allocator) !void {
+        if (singleton.should_update.swap(false, .seq_cst)) {
+            singleton.map.deinit();
+            singleton.map = readComponents(a, COMPONENTS_DIR) catch return error.UpdateFailed;
+        }
     }
 
     fn computeMRC(parent_path: []const u8) !i128 {
