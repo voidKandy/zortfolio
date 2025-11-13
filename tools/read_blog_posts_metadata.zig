@@ -36,8 +36,13 @@ pub fn main() !void {
 
     const json_bytes = out.toOwnedSlice() catch @panic("out of memory");
 
-    // Write to file
-    var file = try std.fs.cwd().createFile("blogsMetadata.json", .{});
+    const outfile =
+        "blogsMetadata.json";
+    const realpath = std.fs.cwd().realpathAlloc(arena, outfile);
+    var file = try std.fs.cwd().createFile(outfile, .{});
+    log.warn(
+        \\ Writing to file: {s}
+    , .{realpath});
     defer file.close();
     try file.writeAll(json_bytes);
 }
