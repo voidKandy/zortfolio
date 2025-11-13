@@ -15,7 +15,7 @@ ENV PATH="/usr/local/zig:${PATH}"
 
 # Set up project directory and pull latest release tarball
 WORKDIR /zortfolio
-RUN curl -L https://github.com/voidKandy/zortfolio/releases/latest/download/zortfolio-latest.tar \
+RUN curl -L https://github.com/voidKandy/zortfolio/archive/refs/tags/latest.tar.gz \
     -o zortfolio.tar && \
     tar xf zortfolio.tar && \
     rm zortfolio.tar
