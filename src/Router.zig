@@ -185,7 +185,7 @@ const Components = struct {
     const COMPONENTS_DIR = "components";
     /// Components' Info mapped by their names hashed
     map: std.AutoHashMap(u64, Info),
-    mrc: std.atomic.Value(i128),
+    mrc: std.atomic.Value(u64),
     should_update: std.atomic.Value(bool),
 
     var singleton: @This() = undefined;
@@ -193,7 +193,7 @@ const Components = struct {
     pub fn init(a: std.mem.Allocator) void {
         singleton = .{
             .map = readComponents(a, COMPONENTS_DIR) catch @panic("failed to init components singleton"),
-            .mrc = std.atomic.Value(i128).init(computeMRC(COMPONENTS_DIR) catch @panic("failed to get mrc")),
+            .mrc = std.atomic.Value(u64).init(computeMRC(COMPONENTS_DIR) catch @panic("failed to get mrc")),
             .should_update = std.atomic.Value(bool).init(false),
         };
 
@@ -201,7 +201,7 @@ const Components = struct {
         thread.detach();
     }
     /// Background thread function
-    fn backgroundWatcher(mrc_ptr: *std.atomic.Value(i128), update_ptr: *std.atomic.Value(bool)) void {
+    fn backgroundWatcher(mrc_ptr: *std.atomic.Value(u64), update_ptr: *std.atomic.Value(bool)) void {
         while (true) {
             std.Thread.sleep(5_000_000_000); // sleep 5 seconds (nano)
             const new_mrc = computeMRC(COMPONENTS_DIR) catch continue;
@@ -223,16 +223,16 @@ const Components = struct {
         }
     }
 
-    fn computeMRC(parent_path: []const u8) !i128 {
+    fn computeMRC(parent_path: []const u8) !u64 {
         const cwd = std.fs.cwd();
         var dir = try cwd.openDir(parent_path, .{ .iterate = true });
 
-        var latest: i128 = 0;
+        var latest: u64 = 0;
         var it = dir.iterate();
         while (try it.next()) |entry| {
             if (entry.kind != .file) continue;
             const stat = try dir.statFile(entry.name);
-            const modified = @as(i128, @intCast(stat.mtime));
+            const modified = @as(u64, @intCast(stat.mtime));
             if (modified > latest) latest = modified;
         }
         return latest;
