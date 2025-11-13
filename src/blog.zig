@@ -14,8 +14,13 @@ const BlogMetadata = struct {
     var map: std.StringHashMap(i64) = undefined;
 
     fn loadMap(a: std.mem.Allocator) !void {
-        const json_bytes = @embedFile("blogsMetadata.json");
-        const parsed = try std.json.parseFromSlice([]BlogMetadata, a, json_bytes, .{});
+        const fs = std.fs.cwd();
+        const file = try fs.openFile("blogsMetadata.json", .{});
+        defer file.close();
+
+        const file_contents = try file.readToEndAlloc(a, 8192);
+
+        const parsed = try std.json.parseFromSlice([]BlogMetadata, a, file_contents, .{});
         const blogs = parsed.value;
 
         map = std.StringHashMap(i64).init(a);
@@ -67,7 +72,8 @@ const BlogPostInfo = struct {
     }
 
     pub fn fromFile(dir: std.fs.Dir, path: []const u8, a: std.mem.Allocator) anyerror!@This() {
-        const true_last_mod = BlogMetadata.map.get(path) orelse return error.NoMetadata;
+        const map = BlogMetadata.map;
+        const true_last_mod = map.get(path) orelse return error.NoMetadata;
         const file = try dir.openFile(path, .{});
         defer file.close();
 
@@ -109,71 +115,6 @@ const BlogPostInfo = struct {
         };
     }
 };
-
-// pub fn getAllPosts(allocator: std.mem.Allocator) ![]BlogPostInfo {
-//     var blog_dir = std.fs.cwd().openDir("blog", .{ .iterate = true }) catch |e| {
-//         log.err("failed to open blog dir: {}\n", .{e});
-//         return error.NoBlogDirectory;
-//     };
-//     var iter = blog_dir.iterate();
-//     var postlist = try std.ArrayList(BlogPostInfo).initCapacity(allocator, iter.buf.len);
-//     while (try iter.next()) |f| {
-//         if (f.kind != .file) {
-//             continue;
-//         }
-//         var split =
-//             std.mem.splitBackwardsScalar(u8, f.name, '.');
-//         const ext = split.first();
-//         if (!std.mem.eql(u8, ext, "md")) {
-//             continue;
-//         }
-
-//         const fullpath = try std.fmt.allocPrint(allocator, "blog/{s}", .{f.name});
-//         const file = try std.fs.cwd().openFile(fullpath, .{});
-//         defer file.close();
-//         const last_modified = (try file.stat()).mtime;
-//         const content = try file.readToEndAlloc(allocator, 8092);
-//         const post_name: []u8 = blk: {
-//             var spl = std.mem.splitScalar(u8, content, '\n');
-//             const firstline =
-//                 spl.first();
-//             if (!std.mem.containsAtLeast(u8, firstline, 1, "#")) {
-//                 const name = try allocator.alloc(u8, "Untitled".len);
-//                 @memcpy(name, "Untitled");
-//                 break :blk name;
-//             }
-
-//             const trimmed_header = std.mem.trim(u8, std.mem.trimLeft(u8, firstline, "#"), " \n");
-//             const name = try allocator.alloc(u8, trimmed_header.len);
-//             @memcpy(name, trimmed_header);
-//             break :blk name;
-//         };
-
-//         const file_name = try allocator.alloc(u8, f.name.len);
-//         @memcpy(file_name, f.name);
-//         const path = try BlogPostInfo.getUriPath(post_name, allocator);
-
-//         log.debug(
-//             \\Appending Post:
-//             \\ FileName: {s}
-//             \\ PATH: {s}
-//             \\ PostName: {s}
-//             \\ Content:
-//             \\ {s}
-//         , .{ f.name, path, post_name, content });
-
-//         const post = BlogPostInfo{
-//             .last_modified = last_modified,
-//             .uri_path = path,
-//             .file_name = file_name,
-//             .name = post_name,
-//             .content = content,
-//         };
-//         try postlist.append(allocator, post);
-//     }
-
-//     return try postlist.toOwnedSlice(allocator);
-// }
 
 pub const BlogTemplate = zemplate.Template(CurrentBlogPage, @embedFile("pages/blog.html"));
 fn getBlogPage(allocator: std.mem.Allocator, query_opt: ?[]const u8) !CurrentBlogPage {

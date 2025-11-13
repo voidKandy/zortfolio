@@ -53,12 +53,12 @@ pub fn CachedDirectory(comptime ItemType: type, dir_path: []const u8) type {
         should_update: std.atomic.Value(bool),
 
         var singleton: ?@This() = null;
-        var default_required_component_keys: std.AutoHashMap(u64, void) = undefined;
+        var default_required_keys: std.AutoHashMap(u64, void) = undefined;
 
         pub fn init(a: std.mem.Allocator) void {
             if (singleton == null) {
                 singleton = .{
-                    .array = readFiles(a, dir_path) catch @panic("failed to init components singleton"),
+                    .array = readFiles(a, dir_path) catch @panic("failed to init singleton"),
                     .mrc = std.atomic.Value(u64).init(computeMRC(dir_path) catch @panic("failed to get mrc")),
                     .should_update = std.atomic.Value(bool).init(false),
                 };
