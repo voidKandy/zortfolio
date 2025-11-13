@@ -1,4 +1,4 @@
-FROM alpine:3.13 as builder
+FROM debian:12 as builder
 
 # Set the Zig version explicitly
 ARG ZIGVER=0.15.1
@@ -22,6 +22,7 @@ FROM alpine:3.13
 
 RUN apk --no-cache add \
       libc-dev \
+      musl-dev \
       curl 
 
 COPY --from=builder /zig/ /usr/local/zig/
