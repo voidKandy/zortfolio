@@ -21,6 +21,7 @@ jobs:
           echo "$PWD/zig-x86_64-linux-0.15.1" >> $GITHUB_PATH
 
       - name: Build blog metadata
+        working-directory: ${{ github.workspace }}
         run: zig build metadata
 
       - name: Commit metadata
