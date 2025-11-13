@@ -49,6 +49,8 @@ pub fn build(b: *std.Build) void {
     const zemplate = b.dependency("zemplate", .{});
     const mime = b.dependency("mime", .{});
     const tls = b.dependency("tls", .{});
+
+    // Executable used by github actions to dynamically create blogs metadata
     {
         const exe = b.addExecutable(.{
             .name = "read_blog_posts_metadata",
@@ -77,6 +79,8 @@ pub fn build(b: *std.Build) void {
     exe.root_module.addImport("zemplate", zemplate.module("zemplate"));
     exe.root_module.addImport("mime", mime.module("mime"));
     exe.root_module.addImport("tls", tls.module("tls"));
+
+    exe.root_module.addAnonymousImport("blogsMetadata.json", .{ .root_source_file = b.path("blogsMetadata.json") });
 
     b.installArtifact(exe);
 

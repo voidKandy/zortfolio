@@ -66,7 +66,7 @@ pub const Dispatcher = struct {
     }
 
     pub fn deinit(self: *Self) void {
-        self.router.deinit();
+        self.router.deinit(self.allocator);
         if (self.tls_auth) |a| {
             a.deinit(self.allocator);
             self.allocator.destroy(a);
@@ -170,7 +170,7 @@ const ConnectionContext = struct {
         self.allocator.free(self.recv_buf);
         self.allocator.free(self.send_buf);
         self.file_server.deinit(self.allocator);
-        self.router.deinit();
+        self.router.deinit(self.allocator);
     }
 
     fn handleConnection(self: *Self) !void {

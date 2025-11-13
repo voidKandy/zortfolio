@@ -23,7 +23,7 @@ pub fn main() !void {
         if (entry.name[0] == '.') continue;
 
         const stat = try dir.statFile(entry.name);
-        log.warn("{s}\n", .{entry.name});
+        log.warn("{s} : {d}\n", .{ entry.name, stat.mtime });
         try files.append(arena, Metadata{
             .path = entry.name,
             .last_modified = @as(i64, @intCast(stat.mtime)),

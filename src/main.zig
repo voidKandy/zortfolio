@@ -17,7 +17,7 @@ pub fn main() !void {
         .thread_safe = true,
     }){};
     defer if (gpa.detectLeaks()) std.log.err("LEAKS DETECTED IN MAIN ALLOCATOR\n", .{});
-    var allocator = gpa.allocator();
+    const allocator = gpa.allocator();
     var dispatcher = Dispatcher.init(allocator, try std.fs.cwd().openDir("serve", .{ .iterate = true }));
 
     var music_info = try music.MusicInfo.build(allocator);
@@ -25,9 +25,11 @@ pub fn main() !void {
     var mtmp = music.MusicTemplate.init(music_info, allocator);
     var home = routes.HomeTemplate.init(routes.Home{}, allocator);
     var info = routes.InfoTemplate.init(routes.Info{}, allocator);
+    var blg = try blog.Blog.init(allocator);
+    defer blg.deinit();
 
     try dispatcher.router.registerStatefulHandler("/", &home, &routes.homeHandler);
-    try dispatcher.router.registerStatefulHandler("/Blog", &allocator, &blog.blogHandler);
+    try dispatcher.router.registerStatefulHandler("/Blog", &blg, &blog.blogHandler);
     try dispatcher.router.registerStatefulHandler("/Music", &mtmp, &music.musicHandler);
     try dispatcher.router.registerStatefulHandler("/Info", &info, &routes.infoHandler);
 

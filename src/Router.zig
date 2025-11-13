@@ -2,9 +2,67 @@ const std = @import("std");
 const log = std.log.scoped(.Router);
 const zemplate = @import("zemplate");
 const http = @import("http.zig");
+const ComponentsDirectory = @import("cache.zig").CachedDirectory(ComponentInfo, "components");
 
 const Request = std.http.Server.Request;
 const BufferedWriter = @import("BufferedWriter.zig");
+
+pub const ComponentInfo = struct {
+    path: []u8,
+    content: []u8,
+    name: []u8,
+    last_modified: i128,
+
+    fn deinit(self: @This(), allocator: std.mem.Allocator) void {
+        allocator.free(self.name);
+        allocator.free(self.content);
+        allocator.free(self.path);
+    }
+
+    pub fn fromFile(dir: std.fs.Dir, path: []const u8, allocator: std.mem.Allocator) anyerror!@This() {
+        var split = std.mem.splitBackwardsScalar(u8, path, '.');
+
+        if (!std.mem.eql(u8, split.first(), "html")) {
+            return error.NotHTML;
+        }
+        const filename = split.next() orelse return error.InvalidFilename;
+
+        var uppercase_idcs: []usize = try allocator.alloc(usize, filename.len);
+        var len: usize = 0;
+        for (filename, 0..) |ch, i| {
+            if (std.ascii.isUpper(ch)) {
+                uppercase_idcs[len] = i;
+                len += 1;
+            }
+        }
+        const component_name: []u8 = try allocator.alloc(u8, filename.len + len);
+
+        var i: usize = 0;
+        for (filename) |ch| {
+            if (std.ascii.isUpper(ch)) {
+                component_name[i] = '-';
+                i += 1;
+                component_name[i] = std.ascii.toLower(ch);
+            } else {
+                component_name[i] = ch;
+            }
+            i += 1;
+        }
+
+        const file = try dir.openFile(path, .{});
+        const fullpath = try dir.realpathAlloc(allocator, path);
+        const last_modified = (try file.stat()).mtime;
+        defer file.close();
+        const content = try file.readToEndAlloc(allocator, 8092);
+
+        return @This(){
+            .path = fullpath,
+            .name = component_name,
+            .content = content,
+            .last_modified = last_modified,
+        };
+    }
+};
 
 pub const StatelessFunc =
     *const fn (r: Request, writer: *std.Io.Writer) anyerror!void;
@@ -38,14 +96,15 @@ notFound: RouteFunc = .{ .stateless = &struct {
 }.handle },
 
 pub fn init(a: std.mem.Allocator) Self {
-    Components.init(a);
+    ComponentsDirectory.init(a);
     return .{
         .map = RoutesMap.init(a),
     };
 }
 
-pub fn deinit(self: *Self) void {
+pub fn deinit(self: *Self, a: std.mem.Allocator) void {
     self.map.deinit();
+    ComponentsDirectory.deinit(a);
 }
 
 pub fn clone(self: *Self) !Self {
@@ -61,7 +120,9 @@ pub fn dispatch(self: *Self, a: std.mem.Allocator, request: *Request) !void {
 
     var not_found = false;
 
-    if (self.map.get(request.head.target)) |func| {
+    const parts = http.parse(&request.*);
+
+    if (self.map.get(parts.path)) |func| {
         try func.call(request.*, &writer);
     } else {
         not_found = true;
@@ -70,11 +131,10 @@ pub fn dispatch(self: *Self, a: std.mem.Allocator, request: *Request) !void {
 
     if (needs_hydration) {
         var component_buffer = try std.ArrayList(u8).initCapacity(a, 1024);
-        try Components.tryUpdate(a);
-        var iter = Components.get().map.iterator();
-        while (iter.next()) |entry| {
-            const info = entry.value_ptr.*;
-            try component_buffer.appendSlice(a, info.content);
+        try ComponentsDirectory.tryUpdate(a);
+        const arr = ComponentsDirectory.get().array;
+        for (0..arr.len) |i| {
+            try component_buffer.appendSlice(a, arr[i].content);
         }
         var tmplt = HydrationTemplate.init(.{
             .hydration = try writer.buffer.toOwnedSlice(a),
@@ -180,130 +240,3 @@ const HydrationTemplateInfo = struct {
 };
 
 const HydrationTemplate = zemplate.Template(HydrationTemplateInfo, @embedFile("pages/index.html"));
-
-const Components = struct {
-    const COMPONENTS_DIR = "components";
-    /// Components' Info mapped by their names hashed
-    map: std.AutoHashMap(u64, Info),
-    mrc: std.atomic.Value(u64),
-    should_update: std.atomic.Value(bool),
-
-    var singleton: @This() = undefined;
-    var default_required_component_keys: std.AutoHashMap(u64, void) = undefined;
-    pub fn init(a: std.mem.Allocator) void {
-        singleton = .{
-            .map = readComponents(a, COMPONENTS_DIR) catch @panic("failed to init components singleton"),
-            .mrc = std.atomic.Value(u64).init(computeMRC(COMPONENTS_DIR) catch @panic("failed to get mrc")),
-            .should_update = std.atomic.Value(bool).init(false),
-        };
-
-        const thread = std.Thread.spawn(.{}, backgroundWatcher, .{ &singleton.mrc, &singleton.should_update }) catch @panic("failed to spawn watcher thread");
-        thread.detach();
-    }
-    /// Background thread function
-    fn backgroundWatcher(mrc_ptr: *std.atomic.Value(u64), update_ptr: *std.atomic.Value(bool)) void {
-        while (true) {
-            std.Thread.sleep(5_000_000_000); // sleep 5 seconds (nano)
-            const new_mrc = computeMRC(COMPONENTS_DIR) catch continue;
-            if (new_mrc > mrc_ptr.load(.seq_cst)) {
-                mrc_ptr.store(new_mrc, .seq_cst);
-                update_ptr.store(true, .seq_cst);
-            }
-        }
-    }
-
-    pub fn get() @This() {
-        return singleton;
-    }
-
-    pub fn tryUpdate(a: std.mem.Allocator) !void {
-        if (singleton.should_update.swap(false, .seq_cst)) {
-            singleton.map.deinit();
-            singleton.map = readComponents(a, COMPONENTS_DIR) catch return error.UpdateFailed;
-        }
-    }
-
-    fn computeMRC(parent_path: []const u8) !u64 {
-        const cwd = std.fs.cwd();
-        var dir = try cwd.openDir(parent_path, .{ .iterate = true });
-
-        var latest: u64 = 0;
-        var it = dir.iterate();
-        while (try it.next()) |entry| {
-            if (entry.kind != .file) continue;
-            const stat = try dir.statFile(entry.name);
-            const modified = @as(u64, @intCast(stat.mtime));
-            if (modified > latest) latest = modified;
-        }
-        return latest;
-    }
-
-    fn readComponents(a: std.mem.Allocator, parent_path: []const u8) !std.AutoHashMap(u64, Info) {
-        log.warn("reading components\n", .{});
-        var map = std.AutoHashMap(u64, Info).init(a);
-        const cwd = std.fs.cwd();
-        var dir = try cwd.openDir(parent_path, .{ .iterate = true });
-        var iter = dir.iterate();
-
-        while (try iter.next()) |f| {
-            if (f.kind != .file) {
-                continue;
-            }
-
-            const info = try Info.new(f.name, a);
-            try map.put(std.hash_map.hashString(info.name), info);
-        }
-
-        return map;
-    }
-
-    const Info = struct {
-        path: []u8,
-        content: []u8,
-        name: []u8,
-
-        fn deinit(self: @This(), allocator: std.mem.Allocator) void {
-            allocator.free(self.name);
-            allocator.free(self.content);
-            allocator.free(self.path);
-        }
-
-        fn new(path: []const u8, allocator: std.mem.Allocator) !@This() {
-            var split = std.mem.splitBackwardsScalar(u8, path, '.');
-
-            if (!std.mem.eql(u8, split.first(), "html")) {
-                return error.NotHTML;
-            }
-            const filename = split.next() orelse return error.InvalidFilename;
-
-            var uppercase_idcs: []usize = try allocator.alloc(usize, filename.len);
-            var len: usize = 0;
-            for (filename, 0..) |ch, i| {
-                if (std.ascii.isUpper(ch)) {
-                    uppercase_idcs[len] = i;
-                    len += 1;
-                }
-            }
-            const component_name: []u8 = try allocator.alloc(u8, filename.len + len);
-
-            var i: usize = 0;
-            for (filename) |ch| {
-                if (std.ascii.isUpper(ch)) {
-                    component_name[i] = '-';
-                    i += 1;
-                    component_name[i] = std.ascii.toLower(ch);
-                } else {
-                    component_name[i] = ch;
-                }
-                i += 1;
-            }
-
-            const fullpath = try std.fmt.allocPrint(allocator, "{s}/{s}", .{ COMPONENTS_DIR, path });
-            const file = try std.fs.cwd().openFile(fullpath, .{});
-            defer file.close();
-            const content = try file.readToEndAlloc(allocator, 8092);
-
-            return @This(){ .path = fullpath, .name = component_name, .content = content };
-        }
-    };
-};

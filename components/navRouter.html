@@ -20,7 +20,6 @@
 
       this.currentPath = window.location.pathname.replace(/^\/+/, '') || this.defaultRoute;
       this.currentQuery = window.location.search.replace(/^\?/, '') || undefined;
-      console.log(`PATH: ${this.currentPath}\nQ: ${this.currentQuery}`);
 
 
       if (this.routes.length === 0) {

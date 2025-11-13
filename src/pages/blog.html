@@ -32,6 +32,18 @@
     white-space: normal;
   }
 
+  md-block p {
+    margin: 0 0.5rem;
+    line-height: 1.2;
+  }
+
+  md-block p code {
+    padding: 2px;
+    border-radius: 3px;
+    background-color: light-dark(var(--light-color), var(--dark-color));
+    color: light-dark(var(--dark-color), var(--light-color));
+  }
+
   md-block pre {
     padding: 1rem;
     border-radius: 4px;
@@ -90,7 +102,7 @@
     <script>
       function renderLastModified() {
         try {
-          const raw = "||zz .current_last_modified zz||";
+          const raw = "||zz .last_modified zz||";
           console.log(raw);
           if (raw && /^\d+$/.test(raw)) {
             const nanos = BigInt(raw);
@@ -117,23 +129,21 @@
         }
       }
       document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById("Blog_route").addEventListener("htmx:xhr:loadend", (evt) => {
-          console.log(evt);
-          renderLastModified();
-
-        });
         renderLastModified();
+        document.addEventListener("htmx:xhr:loadend", (evt) => {
+          renderLastModified();
+        });
 
       })
     </script>
     <header>
       <small>
-        ||zz .current_filename zz||
+        ||zz .filename zz||
       </small>
       <p id="last-modified"></p>
     </header>
     <md-block>
-      ||zz .current_content zz||
+      ||zz .content zz||
     </md-block>
   </div>
 </div>

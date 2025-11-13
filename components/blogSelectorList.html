@@ -57,7 +57,7 @@
    * @typedef {Object} BlogPostInfo
    * @property {BigInt} last_modified - Timestamp of when the post was last modified.
    * @property {string} name - Name of the blog post.
-   * @property {string} path - Path to the blog post.
+   * @property {string} uri_path - Path to the blog post.
    * @property {string} file_name - The name of the file for the blog post.
    * @property {string} content - The content of the blog post.
 
@@ -70,9 +70,8 @@
 
       const posts = this.posts;
       this.selectorContainer = this.querySelector('#posts-container');
-      <!-- this.selectorContainer.classList.add('crt'); -->
       /** @type{string} **/
-      this.currentPostPath = params.get("post") || posts[0].path;
+      this.currentPostPath = params.get("post") || posts[0].uri_path;
 
       posts.forEach(
         /** @param {BlogPostInfo} post */
@@ -80,22 +79,22 @@
           const button = document.createElement('button');
           button.classList.add('crt');
           button.textContent = post.name;
-          button.id = `${post.path}-selector`;
-          button.setAttribute("hx-get", `/Blog?post=${post.path}`);
+          button.id = `${post.uri_path}-selector`;
+          button.setAttribute("hx-get", `/Blog?post=${post.uri_path}`);
           button.setAttribute("hx-target", this.target);
           button.setAttribute("hx-select", this.target);
           button.setAttribute("hx-swap", "outerHTML");
           button.setAttribute("hx-push-url", "true");
 
           button.addEventListener("htmx:xhr:loadend", () => {
-            if (this.currentPostPath != post.path) {
-              this.currentPostPath = post.path;
+            if (this.currentPostPath != post.uri_path) {
+              this.currentPostPath = post.uri_path;
               this.updateButtonStyles();
             }
           });
 
 
-          if (this.currentPostPath == post.path) {
+          if (this.currentPostPath == post.uri_path) {
             button.click();
           }
           this.selectorContainer.appendChild(button);
