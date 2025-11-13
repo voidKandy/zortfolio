@@ -1,11 +1,25 @@
 const std = @import("std");
+const log = std.log.scoped(.BUILD);
 
 fn loadDotEnv(run: *std.Build.Step.Run) void {
     var arena_state = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena_state.deinit();
     const arena = arena_state.allocator();
-    var env_file = std.fs.cwd().openFile(".env", .{}) catch
-        @panic("unable to open .env");
+    var env_file = std.fs.cwd().openFile(".env", .{}) catch |e| {
+        switch (e) {
+            error.FileNotFound => {
+                log.info(
+                    \\ No .env file found
+                , .{e});
+            },
+            else => {
+                log.err(
+                    \\ build.zig could not open .env file: {any}
+                , .{e});
+            },
+        }
+        return;
+    };
 
     defer env_file.close();
 
