@@ -91,6 +91,7 @@
       function renderLastModified() {
         try {
           const raw = "||zz .current_last_modified zz||";
+          console.log(raw);
           if (raw && /^\d+$/.test(raw)) {
             const nanos = BigInt(raw);
             const millisBigInt = nanos / 1_000_000n;
@@ -116,7 +117,13 @@
         }
       }
       document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById("Blog_route").addEventListener("htmx:xhr:loadend", (evt) => {
+          console.log(evt);
+          renderLastModified();
+
+        });
         renderLastModified();
+
       })
     </script>
     <header>

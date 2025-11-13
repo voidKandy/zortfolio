@@ -25,8 +25,8 @@
     // internet connectivity.
     .dependencies = .{
         .zemplate = .{
-            .url = "git+https://github.com/voidKandy/zemplate#e6a033a7825311ae2ad1dda87c9fd282c83db6c3",
-            .hash = "zemplate-0.0.0-tSKpW-U4AAB6fDUsG5QNo9dyiWQGxhMZwDggCbzT-e8P",
+            .url = "git+https://github.com/voidKandy/zemplate#268c44d98d5c7e4276c53a066898905f61323a22",
+            .hash = "zemplate-0.0.0-tSKpWz45AAA66Tj0lwjxFtJnV8sNyumE2l45y4uo0vdx",
         },
         .tls = .{
             .url = "git+https://github.com/ianic/tls.zig#9d56751c99267075908c63a8a91ffc1e7f252df4",

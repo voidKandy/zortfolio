@@ -8,7 +8,7 @@ const blog = @import("blog.zig");
 const Dispatcher = @import("http.zig").Dispatcher;
 
 pub const std_options = std.Options{
-    // .log_level = .info,
+    // .log_level = .debug,
     .log_level = .warn,
 };
 
@@ -26,7 +26,7 @@ pub fn main() !void {
     var home = routes.HomeTemplate.init(routes.Home{}, allocator);
     var info = routes.InfoTemplate.init(routes.Info{}, allocator);
 
-    try dispatcher.router.registerStatefulHandler("/Home", &home, &routes.homeHandler);
+    try dispatcher.router.registerStatefulHandler("/", &home, &routes.homeHandler);
     try dispatcher.router.registerStatefulHandler("/Blog", &allocator, &blog.blogHandler);
     try dispatcher.router.registerStatefulHandler("/Music", &mtmp, &music.musicHandler);
     try dispatcher.router.registerStatefulHandler("/Info", &info, &routes.infoHandler);

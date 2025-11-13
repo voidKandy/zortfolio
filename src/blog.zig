@@ -137,9 +137,8 @@ fn getBlogPage(allocator: std.mem.Allocator, query_opt: ?[]const u8) !BlogPage {
         \\POST:
         \\  NAME: {s}
         \\  FileName: {s}
-        \\  CONTENT: {s}
-        \\  ALL: {s}
-    , .{ post.?.name, post.?.file_name, post.?.content, arr.items });
+        \\  CONTENT LEN: {d}
+    , .{ post.?.name, post.?.file_name, post.?.content.len });
     const last_modified_string = try std.fmt.allocPrint(allocator, "{d}", .{post.?.last_modified});
 
     return BlogPage{

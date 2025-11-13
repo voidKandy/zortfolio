@@ -18,14 +18,12 @@
       const template = document.getElementById('nav-router-template').content.cloneNode(true);
       this.appendChild(template);
 
-      const routes = this.routes;
-      const defaultRoute = this.defaultRoute;
-      this.currentPath = window.location.pathname.replace(/^\/+/, '') || defaultRoute;
+      this.currentPath = window.location.pathname.replace(/^\/+/, '') || this.defaultRoute;
       this.currentQuery = window.location.search.replace(/^\?/, '') || undefined;
       console.log(`PATH: ${this.currentPath}\nQ: ${this.currentQuery}`);
 
 
-      if (routes.length === 0) {
+      if (this.routes.length === 0) {
         console.log('No routes provided');
         return;
       }
@@ -33,13 +31,15 @@
       this.routesContainer = this.querySelector('#routes-container');
       this.routeButtonMap = new Map();
 
-      routes.forEach(route => {
+      this.routes.forEach(route => {
         const button = document.createElement('button');
         button.textContent = route;
         button.id = `${route}_route`;
         button.classList.add("crt");
 
-        if (route === this.currentPath && this.currentQuery) {
+        if (route === this.defaultRoute) {
+          button.setAttribute("hx-get", `/`);
+        } else if (route === this.currentPath && this.currentQuery) {
           button.setAttribute("hx-get", `/${route}?${this.currentQuery}`);
         } else {
           button.setAttribute("hx-get", `/${route}`);
@@ -65,18 +65,21 @@
     updateButtonStyles() {
       const selected_marker = "* ";
       const path = window.location.pathname.replace(/^\/+/, '');
-      for (const button of this.routeButtonMap.values()) {
 
-        if (button.textContent.includes(path)) {
-          if (button.textContent.startsWith(selected_marker)) {
-            continue;
+      for (const button of this.routeButtonMap.values()) {
+        const isHome = path === '' && button.textContent.includes(this.defaultRoute);
+        const isMatch = path !== '' && button.textContent.includes(path);
+
+        if (isHome || isMatch) {
+          if (!button.textContent.startsWith(selected_marker)) {
+            button.textContent = `${selected_marker}${button.textContent}`;
           }
-          button.textContent = `* ${path}`;
         } else {
           button.textContent = button.textContent.replace(selected_marker, "");
         }
       }
     }
+
 
 
     get swap() {
