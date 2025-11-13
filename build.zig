@@ -10,7 +10,7 @@ fn loadDotEnv(run: *std.Build.Step.Run) void {
             error.FileNotFound => {
                 log.info(
                     \\ No .env file found
-                , .{e});
+                , .{});
             },
             else => {
                 log.err(
