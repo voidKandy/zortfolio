@@ -4,10 +4,9 @@ FROM debian:12 as builder
 ARG ZIGVER=0.15.1
 
 # Install curl and xz for downloading and extracting Zig
-RUN apk update && \
-    apk add \
-        curl \
-        xz
+RUN apt-get update && \
+apt-get install -y curl xz-utils && \
+rm -rf /var/lib/apt/lists/*
 
 # Download and extract the Zig compiler
 RUN mkdir -p /deps
@@ -20,10 +19,9 @@ RUN curl -L https://ziglang.org/download/$ZIGVER/zig-x86_64-linux-$ZIGVER.tar.xz
 
 FROM alpine:3.13
 
-RUN apk --no-cache add \
-      libc-dev \
-      musl-dev \
-      curl 
+RUN apt-get update && \
+    apt-get install -y libc6-dev curl && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /zig/ /usr/local/zig/
 
@@ -35,9 +33,6 @@ ARG SPOTIFY_CLIENT_SECRET
 ARG PORT
 
 ADD . ./
-
-RUN ls serve
-# So sourcing .env doesnt lead to failure
 RUN touch .env 
 
 RUN zig build
