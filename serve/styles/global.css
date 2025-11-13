@@ -104,6 +104,15 @@ body:not(.dark) button:hover {
     1px 1px 0 var(--dark-color);
 }
 
+nav-router button {
+  color: var(--offblack);
+}
+
+nav-router button:hover {
+  text-shadow:
+    1px 1px 0 var(--dark-color);
+}
+
 button {
   font-weight: bold;
   border-style: solid;
