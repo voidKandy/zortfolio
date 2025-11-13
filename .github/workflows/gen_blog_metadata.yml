@@ -3,8 +3,9 @@ name: Generate Blog Metadata
 on:
   push:
     branches:
-      - main
       - "**"
+    paths:
+      - 'blog/**'
 
 jobs:
   build-meta:
