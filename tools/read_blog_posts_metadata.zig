@@ -38,8 +38,8 @@ pub fn main() !void {
 
     const outfile =
         "blogsMetadata.json";
-    const realpath = try std.fs.cwd().realpathAlloc(arena, outfile);
     var file = try std.fs.cwd().createFile(outfile, .{});
+    const realpath = try std.fs.cwd().realpathAlloc(arena, outfile);
     log.warn(
         \\ Writing to file: {s}
     , .{realpath});
