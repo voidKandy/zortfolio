@@ -115,7 +115,9 @@
           console.error("Error converting date:", err);
         }
       }
-      renderLastModified();
+      document.addEventListener('DOMContentLoaded', () => {
+        renderLastModified();
+      })
     </script>
     <header>
       <small>

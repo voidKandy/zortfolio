@@ -185,14 +185,14 @@ const ConnectionContext = struct {
             var r = self.connection.https.reader(self.recv_buf);
             var w = self.connection.https.writer(self.send_buf);
             server = std.http.Server.init(&r.interface, &w.interface);
-            log.warn(
+            log.info(
                 \\ Created HTTPS connection
             , .{});
         } else {
             var r = self.connection.http.stream.reader(self.recv_buf);
             var w = self.connection.http.stream.writer(self.send_buf);
             server = std.http.Server.init(r.interface(), &w.interface);
-            log.warn(
+            log.info(
                 \\ Created HTTP connection
             , .{});
         }

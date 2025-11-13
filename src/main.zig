@@ -4,23 +4,13 @@ const zemplate = @import("zemplate");
 pub const routes = @import("routes.zig");
 const music = @import("music.zig");
 const blog = @import("blog.zig");
-const middleware = @import("middleware.zig");
 
 const Dispatcher = @import("http.zig").Dispatcher;
 
 pub const std_options = std.Options{
-    .log_level = .info,
-    // .log_level = .warn,
+    // .log_level = .info,
+    .log_level = .warn,
 };
-
-fn notFoundHandler(r: zap.Request) anyerror!void {
-    r.setStatus(zap.http.StatusCode.not_found);
-
-    const body = "<html><body><h1>404 NOT FOUND</h1></body></html>";
-    _ = r.sendBody(body) catch |err| {
-        std.debug.print("Error sending response: {any}\n", .{err});
-    };
-}
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{

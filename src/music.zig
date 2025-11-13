@@ -1,5 +1,4 @@
 const std = @import("std");
-const zap = @import("zap");
 const zemplate = @import("zemplate");
 const zdotenv = @import("zdotenv");
 const print = std.debug.print;

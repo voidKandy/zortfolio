@@ -20,23 +20,11 @@
 
       const routes = this.routes;
       const defaultRoute = this.defaultRoute;
-      /** @type {string} **/
-      const currentPath = this.getAttribute('current')?.replace(/^\/+/, '') || defaultRoute;
-      /** @type {string|undefined} **/
-      const currentQuery = this.getAttribute('query')?.replace(/^\/+/, '') || undefined;
-
-      this.currentPath = currentPath;
-      /** @type {string|undefined} **/
-      this.currentQuery = currentQuery;
-
+      this.currentPath = window.location.pathname.replace(/^\/+/, '') || defaultRoute;
+      this.currentQuery = window.location.search.replace(/^\?/, '') || undefined;
       console.log(`PATH: ${this.currentPath}\nQ: ${this.currentQuery}`);
 
-      if (!routes.includes(currentPath)) {
-        console.error(`Route "${currentPath}" not found. Falling back to default route.`);
-        currentPath = defaultRoute;
-      }
 
-      this.prevRoute = null;
       if (routes.length === 0) {
         console.log('No routes provided');
         return;
@@ -60,15 +48,8 @@
         button.setAttribute("hx-swap", this.swap);
         button.setAttribute("hx-push-url", "true");
 
-
         button.addEventListener("htmx:xhr:loadend", () => {
-          if (this.currentPath != route) {
-            this.prevRoute = this.currrentRoute;
-            this.currentPath = route;
-            this.updateButtonStyles();
-          } else {
-            button.classList.add("active");
-          }
+          this.updateButtonStyles();
         });
 
         this.routeButtonMap.set(route, button);
@@ -76,46 +57,25 @@
       });
 
       document.addEventListener('DOMContentLoaded', () => {
-        const button = this.routeButtonMap.get(this.currentPath || this.defaultRoute);
-        const currentValue = button.getAttribute("hx-get");
-        button.setAttribute("hx-get", currentValue + this.currentQuery);
-
-        if (this.currentPath == null) {
-          this.sendClickToButton(this.defaultRoute);
-        }
-
-        if (this.prevRoute != this.currentPath) {
-          this.sendClickToButton(this.currentPath);
-        }
-
         this.updateButtonStyles();
-
       })
 
     }
 
-    /**
-    * This triggers after htmx:xhr:loadend, which means it triggers right after any of the route buttons are 
-    * clicked 
-    * */
     updateButtonStyles() {
-      const buttons = this.routeButtonMap.values();
-      buttons.forEach(button => {
-        if (button.textContent === this.currentPath) {
-          button.textContent = `* ${this.currentPath}`;  // Prepend a '*' to active route
-        } else {
-          button.textContent = button.textContent.replace("* ", "");  // Remove '*' from inactive routes
-        }
-      });
-    }
+      const selected_marker = "* ";
+      const path = window.location.pathname.replace(/^\/+/, '');
+      for (const button of this.routeButtonMap.values()) {
 
-    sendClickToButton(route) {
-      const b = this.routeButtonMap.get(route);
-      if (!b) {
-        console.log("could not get button from route: ", route);
-        return;
+        if (button.textContent.includes(path)) {
+          if (button.textContent.startsWith(selected_marker)) {
+            continue;
+          }
+          button.textContent = `* ${path}`;
+        } else {
+          button.textContent = button.textContent.replace(selected_marker, "");
+        }
       }
-      b.click();
     }
 
 

@@ -10,19 +10,32 @@ pub const StatelessFunc =
     *const fn (r: Request, writer: *std.Io.Writer) anyerror!void;
 
 pub const StatefulFunc = *fn (*const anyopaque, Request, *std.Io.Writer) anyerror!void;
+
 const RouteFunc = union(enum) {
     stateless: StatelessFunc,
     stateful: struct {
         state_ptr: usize,
         func_ptr: usize,
     },
+
+    fn call(self: @This(), request: Request, writer: *BufferedWriter) anyerror!void {
+        switch (self) {
+            .stateful => |b| try @call(.auto, @as(StatefulFunc, @ptrFromInt(b.func_ptr)), .{ @as(*anyopaque, @ptrFromInt(b.state_ptr)), request, &writer.interface }),
+            .stateless => |f| try f(request, &writer.interface),
+        }
+    }
 };
 
 const RoutesMap = std.StringHashMap(RouteFunc);
 const Self = @This();
 
 map: RoutesMap,
-notFound: ?RouteFunc = null,
+notFound: RouteFunc = .{ .stateless = &struct {
+    fn handle(r: Request, w: *std.Io.Writer) anyerror!void {
+        _ = r;
+        try w.writeAll("<div><h1>404 NOT FOUND</h1></div>");
+    }
+}.handle },
 
 pub fn init(a: std.mem.Allocator) Self {
     Components.init(a);
@@ -44,56 +57,36 @@ pub fn dispatch(self: *Self, a: std.mem.Allocator, request: *Request) !void {
     var writer = try BufferedWriter.init(a);
     defer writer.deinit(a);
 
-    var component_buffer = try std.ArrayList(u8).initCapacity(a, 1024);
-    defer component_buffer.deinit(a);
-
     const needs_hydration = http.getHeader(request.*, "hx-request") == null;
 
     var not_found = false;
 
     if (self.map.get(request.head.target)) |func| {
-        switch (func) {
-            .stateful => |b| try @call(.auto, @as(StatefulFunc, @ptrFromInt(b.func_ptr)), .{ @as(*anyopaque, @ptrFromInt(b.state_ptr)), request.*, &writer.interface }),
-            .stateless => |f| try f(request.*, &writer.interface),
-        }
-
-        var keys_iter = Components.get().map.keyIterator();
-        while (keys_iter.next()) |key| {
-            if (std.mem.indexOf(u8, writer.buffer.items, key.*) != null or Components.default_required_component_keys.get(key.*) != null) {
-                log.info("requires component: {s}\n", .{key.*});
-                try component_buffer.appendSlice(a, Components.get().map.get(key.*).?.content);
-            }
-        }
+        try func.call(request.*, &writer);
     } else {
         not_found = true;
-        if (self.notFound) |func| {
-            switch (func) {
-                .stateful => |b| try @call(.auto, @as(StatefulFunc, @ptrFromInt(b.func_ptr)), .{ @as(*anyopaque, @ptrFromInt(b.state_ptr)), request.*, &writer.interface }),
-                .stateless => |f| try f(request.*, &writer.interface),
-            }
-        } else {
-            try writer.interface.writeAll("<html><body><h1>404 NOT FOUND</h1></body></html>");
-        }
+        try self.notFound.call(request.*, &writer);
     }
 
     if (needs_hydration) {
+        var component_buffer = try std.ArrayList(u8).initCapacity(a, 1024);
+        var iter = Components.get().map.iterator();
+        while (iter.next()) |entry| {
+            const info = entry.value_ptr.*;
+            try component_buffer.appendSlice(a, info.content);
+        }
         var tmplt = HydrationTemplate.init(.{
-            .hydration = writer.buffer.items,
-            .components = component_buffer.items,
+            .hydration = try writer.buffer.toOwnedSlice(a),
+            .components = try component_buffer.toOwnedSlice(a),
         }, a);
 
         var render = try tmplt.render();
-        writer.interface.buffer = render.items;
-        defer render.deinit(a);
-        try request.respond(render.items, .{
-            .status = if (not_found) .not_found else .ok,
-        });
-    } else {
-        try writer.interface.writeAll(component_buffer.items);
-        try request.respond(writer.buffer.items, .{
-            .status = if (not_found) .not_found else .ok,
-        });
+        try writer.interface.writeAll(try render.toOwnedSlice(a));
     }
+
+    try request.respond(writer.buffer.items, .{
+        .status = if (not_found) .not_found else .ok,
+    });
 }
 
 inline fn checkStatefulHandlerRegisterArgs(func: anytype) void {
@@ -113,7 +106,7 @@ inline fn checkStatefulHandlerRegisterArgs(func: anytype) void {
                 @typeName(@TypeOf(func)));
         };
 
-        // 2) snd arg is zap.Request
+        // 2) snd arg is Request
         if (f.params.len != 3) {
             @compileError("Expected func to have three parameters");
         }
@@ -185,42 +178,22 @@ const HydrationTemplateInfo = struct {
     components: []u8,
 };
 
-const hydration_template_file =
-    @embedFile("pages/index.html");
-
-const HydrationTemplate = zemplate.Template(HydrationTemplateInfo, hydration_template_file);
+const HydrationTemplate = zemplate.Template(HydrationTemplateInfo, @embedFile("pages/index.html"));
 
 const Components = struct {
     const COMPONENTS_DIR = "components";
-    map: std.StringHashMap(Info),
+    /// Components' Info mapped by their names hashed
+    map: std.AutoHashMap(u64, Info),
     // currently we don't do anything with this
     mrc: i128,
 
     var singleton: @This() = undefined;
-    var default_required_component_keys: std.StringHashMap(void) = undefined;
+    var default_required_component_keys: std.AutoHashMap(u64, void) = undefined;
     pub fn init(a: std.mem.Allocator) void {
         singleton = .{
             .map = readComponents(a, COMPONENTS_DIR) catch @panic("failed to init components singleton"),
             .mrc = computeMRC(COMPONENTS_DIR) catch @panic("failed to get mrc"),
         };
-
-        setDefaultReqComponents(a);
-    }
-
-    /// don't love this but it prevents a need to parse the index file for needed components everytime
-    fn setDefaultReqComponents(a: std.mem.Allocator) void {
-        var keys_iter = singleton.map.keyIterator();
-        var map = std.StringHashMap(void).init(a);
-        var i: usize = 0;
-        while (keys_iter.next()) |key| : (i += 1) {
-            if (std.mem.indexOf(u8, hydration_template_file, key.*)) |_| {
-                log.info(
-                    \\ Default includes component {s}
-                , .{key.*});
-                map.put(key.*, {}) catch @panic("out of memory");
-            }
-        }
-        default_required_component_keys = map;
     }
 
     pub fn get() @This() {
@@ -242,9 +215,9 @@ const Components = struct {
         return latest;
     }
 
-    fn readComponents(a: std.mem.Allocator, parent_path: []const u8) !std.StringHashMap(Info) {
+    fn readComponents(a: std.mem.Allocator, parent_path: []const u8) !std.AutoHashMap(u64, Info) {
         log.warn("reading components\n", .{});
-        var map = std.StringHashMap(Info).init(a);
+        var map = std.AutoHashMap(u64, Info).init(a);
         const cwd = std.fs.cwd();
         var dir = try cwd.openDir(parent_path, .{ .iterate = true });
         var iter = dir.iterate();
@@ -255,7 +228,7 @@ const Components = struct {
             }
 
             const info = try Info.new(f.name, a);
-            try map.put(info.name, info);
+            try map.put(std.hash_map.hashString(info.name), info);
         }
 
         return map;

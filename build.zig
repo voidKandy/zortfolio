@@ -4,10 +4,6 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const zap = b.dependency("zap", .{
-        .target = target,
-        .optimize = optimize,
-    });
     const zemplate = b.dependency("zemplate", .{});
     const mime = b.dependency("mime", .{});
     const zdotenv = b.dependency("zdotenv", .{});
@@ -22,7 +18,6 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
-    exe.root_module.addImport("zap", zap.module("zap"));
     exe.root_module.addImport("zemplate", zemplate.module("zemplate"));
     exe.root_module.addImport("mime", mime.module("mime"));
     exe.root_module.addImport("tls", tls.module("tls"));
@@ -50,7 +45,6 @@ pub fn build(b: *std.Build) void {
         }),
     });
     exe_unit_tests.root_module.addImport("zdotenv", zdotenv.module("zdotenv"));
-    exe_unit_tests.root_module.addImport("zap", zap.module("zap"));
     exe_unit_tests.root_module.addImport("tls", tls.module("tls"));
     exe_unit_tests.root_module.addImport("zemplate", zemplate.module("zemplate"));
     exe_unit_tests.root_module.addImport("mime", mime.module("mime"));
