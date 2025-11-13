@@ -22,7 +22,7 @@ jobs:
           export PATH="/usr/local/zig:$PATH"
 
       - name: Build blog metadata
-        run: zig build meta
+        run: zig build metadata
 
       - name: Commit metadata
         run: |
