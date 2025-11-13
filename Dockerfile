@@ -1,7 +1,7 @@
 FROM debian:12
 
 # Install dependencies
-RUN apt-get update && apt-get install -y curl xz-utils libc6-dev tar && \
+RUN apt-get update && apt-get install -y curl xz-utils libc6-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Set up Zig
@@ -13,12 +13,9 @@ RUN curl -L https://ziglang.org/download/$ZIGVER/zig-x86_64-linux-$ZIGVER.tar.xz
 
 ENV PATH="/usr/local/zig:${PATH}"
 
-# Set up project directory and pull latest release tarball
+# Copy source directly into final image
 WORKDIR /zortfolio
-RUN curl -L https://github.com/voidKandy/zortfolio/archive/refs/tags/latest.tar.gz \
-    -o zortfolio.tar && \
-    tar xf zortfolio.tar --strip-components=1 && \
-    rm zortfolio.tar
+COPY . .
 
 # Build the project
 RUN zig build

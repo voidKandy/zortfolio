@@ -49,6 +49,21 @@ pub fn build(b: *std.Build) void {
     const zemplate = b.dependency("zemplate", .{});
     const mime = b.dependency("mime", .{});
     const tls = b.dependency("tls", .{});
+    {
+        const exe = b.addExecutable(.{
+            .name = "read_blog_posts_metadata",
+            .root_module = b.createModule(.{
+                .root_source_file = b.path("tools/read_blog_posts_metadata.zig"),
+                .target = target,
+                .optimize = optimize,
+            }),
+        });
+        b.installArtifact(exe);
+        const run_cmd = b.addRunArtifact(exe);
+        run_cmd.step.dependOn(b.getInstallStep());
+        const run_step = b.step("metadata", "get blogs metadata");
+        run_step.dependOn(&run_cmd.step);
+    }
 
     const exe = b.addExecutable(.{
         .name = "zortfolio",
