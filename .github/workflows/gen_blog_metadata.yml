@@ -25,6 +25,7 @@ jobs:
         run: zig build metadata
 
       - name: Commit metadata
+        working-directory: ${{ github.workspace }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
