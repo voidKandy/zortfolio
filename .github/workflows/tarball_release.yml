@@ -1,0 +1,26 @@
+name: Tarball Release
+
+on:
+  push:
+    branches:
+      - '**' 
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create tarball
+        run: |
+          TAR_NAME="zortfolio-${GITHUB_SHA}.tar"
+          tar --exclude="$TAR_NAME" -cf "$TAR_NAME" .
+          echo "TAR_NAME=$TAR_NAME" >> $GITHUB_ENV
+
+      - name: Upload tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: zortfolio-tar
+          path: ${{ env.TAR_NAME }}
