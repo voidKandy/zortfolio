@@ -22,7 +22,7 @@ FROM alpine:3.13
 
 RUN apk --no-cache add \
       libc-dev \
-      curl
+      curl 
 
 COPY --from=builder /zig/ /usr/local/zig/
 

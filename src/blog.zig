@@ -1,6 +1,5 @@
 const std = @import("std");
 const zemplate = @import("zemplate");
-const zdotenv = @import("zdotenv");
 const http = @import("http.zig");
 const ArrayList = std.ArrayList;
 const Request = std.http.Server.Request;

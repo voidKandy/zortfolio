@@ -1,6 +1,5 @@
 const std = @import("std");
 const zemplate = @import("zemplate");
-const zdotenv = @import("zdotenv");
 const print = std.debug.print;
 const ArrayList = std.ArrayList;
 const log = std.log.scoped(.routes);
