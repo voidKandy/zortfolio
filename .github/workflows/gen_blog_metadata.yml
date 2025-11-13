@@ -24,14 +24,12 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: zig build metadata
 
-      - name: Commit metadata
-        working-directory: ${{ github.workspace }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add blogsMetadata.json
-          git diff --quiet || git commit -m "Update blogsMetadata.json"
-          git push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+     
+      - name: Commit updated metadata
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: 'blogsMetadata.json'
+          message: 'Update blogsMetadata.json'
+          author_name: GitHub Actions
+          author_email: actions@github.com
+          push: 'origin ${{ github.ref_name }}'
