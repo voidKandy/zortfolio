@@ -26,8 +26,8 @@ jobs:
         id: create_release
         uses: actions/create-release@v1
         with:
-          tag_name: ${{ github.sha }}        # one release per commit
-          release_name: "Commit ${{ github.sha }}"
+          tag_name: latest       
+          release_name: Latest Build
           draft: false
           prerelease: false
         env:
