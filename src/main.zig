@@ -32,7 +32,11 @@ pub fn main() !void {
     try dispatcher.router.registerStatefulHandler("/Info", &info, &routes.infoHandler);
 
     // try router.withTls(std.fs.cwd(), "local_ssl/localhost.crt", "local_ssl/localhost.key");
-    const addr = try std.net.Address.parseIp("0.0.0.0", 3000);
+    var env_map = try std.process.getEnvMap(allocator);
+    defer env_map.deinit();
+    const port_str = env_map.get("PORT") orelse "3000";
+    const port = try std.fmt.parseInt(u16, port_str, 10);
+    const addr = try std.net.Address.parseIp("0.0.0.0", port);
     try dispatcher.startServer(addr, .{ .reuse_address = true });
     defer dispatcher.deinit();
 

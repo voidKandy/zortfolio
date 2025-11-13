@@ -1,6 +1,6 @@
 const std = @import("std");
 const zemplate = @import("zemplate");
-const zdotenv = @import("zdotenv");
+const dotenv = @import("dotenv");
 const print = std.debug.print;
 const log = std.log.scoped(.music);
 const Request = std.http.Server.Request;
@@ -219,10 +219,8 @@ const MusicInfoBuilder = struct {
     /// As per spotify's client credential flow:
     /// https://developer.spotify.com/documentation/web-api/tutorials/client-credentials-flow
     fn getSpotifyToken(self: *Self) !std.json.Parsed(SpotifyToken) {
-        var env = try zdotenv.Zdotenv.init(self.allocator);
-        try env.load();
-
-        const env_map = try std.process.getEnvMap(self.allocator);
+        var env_map = try std.process.getEnvMap(self.allocator);
+        defer env_map.deinit();
 
         const client_id = env_map.get("SPOTIFY_CLIENT_ID") orelse return error.NoClientId;
         const client_secret = env_map.get("SPOTIFY_CLIENT_SECRET") orelse return error.NoClientSecret;

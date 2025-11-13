@@ -17,7 +17,7 @@ RUN curl -L https://ziglang.org/download/$ZIGVER/zig-x86_64-linux-$ZIGVER.tar.xz
     tar xf zig.tar.xz && \
     mv zig-x86_64-linux-$ZIGVER /zig
 
-FROM alpine:3.13
+FROM debian:12
 
 RUN apt-get update && \
     apt-get install -y libc6-dev curl && \
@@ -28,10 +28,6 @@ COPY --from=builder /zig/ /usr/local/zig/
 ENV PATH="/usr/local/zig:${PATH}"
 
 WORKDIR ./zortfolio
-ARG SPOTIFY_CLIENT_ID
-ARG SPOTIFY_CLIENT_SECRET
-ARG PORT
-
 ADD . ./
 RUN touch .env 
 
