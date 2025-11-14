@@ -34,4 +34,4 @@ jobs:
           author_name: GitHub Actions
           author_email: actions@github.com
           push: 'origin ${{ github.ref_name }}'
-          force: true
+
