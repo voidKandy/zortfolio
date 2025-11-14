@@ -80,7 +80,7 @@ pub fn build(b: *std.Build) void {
     exe.root_module.addImport("mime", mime.module("mime"));
     exe.root_module.addImport("tls", tls.module("tls"));
 
-    // exe.root_module.addAnonymousImport("blogsMetadata.json", .{ .root_source_file = b.path("blogsMetadata.json") });
+    exe.root_module.addAnonymousImport("blogsMetadata.json", .{ .root_source_file = b.path("blogsMetadata.json") });
 
     b.installArtifact(exe);
 

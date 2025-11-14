@@ -96,4 +96,12 @@ pub fn main() !void {
     try file.writeAll(json_bytes);
 }
 ```
+And then in my main `build.zig` file, I've exposed the generated `blogsMetadata.json` file to my program in this single line: 
+```zig
+exe.root_module.addAnonymousImport("blogsMetadata.json", .{ .root_source_file = b.path("blogsMetadata.json") });
+```
+Now accessing the content of this file is as easy as calling
+```zig
+@embedFile("blogsMetadata.json")
+```
 It may seem like overkill, and maybe it is but I personally really like having the dates for my blog posts. Thanks for reading this post, next week I plan on going over the frontend.

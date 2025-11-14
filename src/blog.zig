@@ -14,13 +14,10 @@ const BlogMetadata = struct {
     var map: std.StringHashMap(i64) = undefined;
 
     fn loadMap(a: std.mem.Allocator) !void {
-        const fs = std.fs.cwd();
-        const file = try fs.openFile("blogsMetadata.json", .{});
-        defer file.close();
+        const json_bytes = @embedFile("blogsMetadata.json");
 
-        const file_contents = try file.readToEndAlloc(a, 8192);
+        const parsed = try std.json.parseFromSlice([]BlogMetadata, a, json_bytes, .{});
 
-        const parsed = try std.json.parseFromSlice([]BlogMetadata, a, file_contents, .{});
         const blogs = parsed.value;
 
         map = std.StringHashMap(i64).init(a);
