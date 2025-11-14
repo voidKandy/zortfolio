@@ -1,44 +1,24 @@
-FROM alpine:3.13 as builder
+FROM debian:12
 
-# Set the Zig version explicitly
+# Install dependencies
+RUN apt-get update && apt-get install -y curl xz-utils libc6-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set up Zig
 ARG ZIGVER=0.15.1
-
-# Install curl and xz for downloading and extracting Zig
-RUN apk update && \
-    apk add \
-        curl \
-        xz
-
-# Download and extract the Zig compiler
-RUN mkdir -p /deps
 WORKDIR /deps
-
-# Download the Zig binary for the given version
 RUN curl -L https://ziglang.org/download/$ZIGVER/zig-x86_64-linux-$ZIGVER.tar.xz -o zig.tar.xz && \
     tar xf zig.tar.xz && \
-    mv zig-x86_64-linux-$ZIGVER /zig
-
-FROM alpine:3.13
-
-RUN apk --no-cache add \
-      libc-dev \
-      curl
-
-COPY --from=builder /zig/ /usr/local/zig/
+    mv zig-x86_64-linux-$ZIGVER /usr/local/zig
 
 ENV PATH="/usr/local/zig:${PATH}"
 
-WORKDIR ./zortfolio
-ARG SPOTIFY_CLIENT_ID
-ARG SPOTIFY_CLIENT_SECRET
-ARG PORT
+# Copy source directly into final image
+WORKDIR /zortfolio
+COPY . .
 
-ADD . ./
-
-RUN ls serve
-# So sourcing .env doesnt lead to failure
-RUN touch .env 
-
+# Build the project
 RUN zig build
 
+# Default command
 CMD ["./zig-out/bin/zortfolio"]

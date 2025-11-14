@@ -7,8 +7,6 @@ I built this project as a way to learn the Zig programming language, and I had a
 + HTMX for routing
 
 I also tried to minimize my Zig dependencies, and I managed to only need 2:
-+ [zap](https://github.com/zigzap/zap)
-+ [zdotenv](https://github.com/BitlyTwiser/zdotenv)
 
 Templating was hand-rolled, see [zemplate](https://github.com/voidKandy/zemplate).
 

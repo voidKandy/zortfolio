@@ -49,6 +49,7 @@
   </style>
 </head>
 
+
 <body class="crt">
   ||zz .components zz||
   <div id="frame" class="box">
@@ -60,12 +61,13 @@
                   border-bottom: 1px dashed;
                   border-color: light-dark(var(--light-border), var(--dark-border));
                   ">
-        <nav-router routes="Home, Music, Info, Blog" target="#route-content" current="||zz .path zz||"
-          query="||zz .query zz||"> </nav-router>
+        <nav-router routes="Home, Music, Info, Blog" target="#route-content"> </nav-router>
         <dark-mode-button defaultDark="false" lightModeText="Dark Mode" darkModeText="Light Mode">
         </dark-mode-button>
       </div>
-      <div id="route-content"></div>
+      <div id="route-content">
+        ||zz .hydration zz||
+      </div>
     </div>
     <div style="margin-top: 1rem;">
       <color-squares>
