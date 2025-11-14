@@ -6,8 +6,10 @@ I built this project as a way to learn the Zig programming language, and I had a
 + Vanilla JS Web Compponents
 + HTMX for routing
 
-I also tried to minimize my Zig dependencies, and I managed to only need 2:
+As an excersize, I tried to minimize the uage of libraries not written by me, I managed to only need 2:
++ [tls](https://github.com/ianic/)
++ [mime](https://github.com/andrewrk/mime)
 
 Templating was hand-rolled, see [zemplate](https://github.com/voidKandy/zemplate).
 
-I had never used Web Components before, but as it turns out, they're *really* nice. 
+Source code tour included on my [Blog](https://www.voidkandy.space/Blog)
