@@ -56,7 +56,7 @@ fn loadDotEnv(run: *std.Build.Step.Run) void {
 So the function is pretty simple; It takes a `Run` step (which is basically just a binary that will be built), looks for a `.env` file, if it finds one it parses it and sets environment variables specifically for that `Run` step. This way the environment variables in the `.env` file will be accessible to the program run by that `Run` step just like they would be if any other `.env` library was used.
 ### Blog post metadata
 Notice the section at the top of this page that tells you when this post was last edited? That was trickier to implement than you would think. It's easy enough to embed that information in my local environment, but when I ship the source code of this website to a docker container to be run in a server I'm renting, all of the source code gets copied, and the last modified time of all files gets set to the time that they were copied. If I hadn't implemented this step, every blog post would have the same last modified time. Basically, I've added a build step that reads the `blogs` directory and creates a `JSON` map of all the blog posts and their *true* last updated time. This step runs in a GitHub action that will update the `json` file anytime a new blog post is either added to the repo or changed. Then, when I parse through my blog posts to actually present them I reference the generated `JSON` file to get the true last updated time, rather than the blog post's file's last updated time.
-#### The code
+### The code
 I have one file that is actually run by github actions on commits containing changes to the blog directory: 
 ```zig
 pub fn main() !void {
