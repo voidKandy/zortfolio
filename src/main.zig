@@ -19,6 +19,7 @@ pub fn main() !void {
     defer if (gpa.detectLeaks()) std.log.err("LEAKS DETECTED IN MAIN ALLOCATOR\n", .{});
     const allocator = gpa.allocator();
     var dispatcher = Dispatcher.init(allocator, try std.fs.cwd().openDir("serve", .{ .iterate = true }));
+    defer dispatcher.deinit();
 
     var music_info = try music.MusicInfo.build(allocator);
     defer music_info.deinit(allocator);
@@ -40,7 +41,6 @@ pub fn main() !void {
     const port = try std.fmt.parseInt(u16, port_str, 10);
     const addr = try std.net.Address.parseIp("0.0.0.0", port);
     try dispatcher.startServer(addr, .{ .reuse_address = true });
-    defer dispatcher.deinit();
 
     try dispatcher.listen();
 }

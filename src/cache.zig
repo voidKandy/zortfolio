@@ -118,7 +118,7 @@ pub fn CachedDirectory(comptime ItemType: type, dir_path: []const u8) type {
         }
 
         fn readFiles(a: std.mem.Allocator, parent_path: []const u8) ![]ItemType {
-            log.warn("reading cached files\n", .{});
+            log.info("reading cached files\n", .{});
             const cwd = std.fs.cwd();
             var dir = try cwd.openDir(parent_path, .{ .iterate = true });
             var iter = dir.iterate();

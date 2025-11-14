@@ -109,7 +109,7 @@ pub fn deinit(self: *Self, a: std.mem.Allocator) void {
 
 pub fn clone(self: *Self) !Self {
     const map = try self.map.clone();
-    return .{ .map = map };
+    return .{ .map = map, .notFound = self.notFound };
 }
 
 pub fn dispatch(self: *Self, a: std.mem.Allocator, request: *Request) !void {
