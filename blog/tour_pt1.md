@@ -8,8 +8,8 @@ My build is pretty standard, so I'm not going to share the whole file, instead I
 The first is a function I wrote that sources from a `.env` file, and the other is a combination of a tool and a few lines that expose a `.json` file to my program.
 
 ### `.env` Sourcing
- `.env` files are generally used to configure the environment of a given application. Generally speaking they are hidden from git or whichever version control system a dev might use. This way "secrets" can live in these `.env` files (such as API keys or other sensitive info) and only the program can actually look into their values at runtime.
-Before, I was using [`zdotenv`](https://github.com/BitlyTwiser/zdotenv), but I've been trying to minimize dependencies and I though it would be fun to try to build `.env` sourcing into the build system. 
+`.env` files are usually hidden from version control and store configuration values such as API keys or secrets. When loaded, the values become environment variables that only the running process and its child processes can access at runtime.
+Before, I was using [`zdotenv`](https://github.com/BitlyTwiser/zdotenv), but I've been trying to minimize dependencies and I though it would be fun to try to source an `.env` file at comptime. 
 #### The code
 ```zig
 fn loadDotEnv(run: *std.Build.Step.Run) void {
@@ -52,10 +52,12 @@ fn loadDotEnv(run: *std.Build.Step.Run) void {
             run.setEnvironmentVariable(key, value);
     }
 }
+
 ```
-So the function is pretty simple; It takes a `Run` step (which is basically just a binary that will be built), looks for a `.env` file, if it finds one it parses it and sets environment variables specifically for that `Run` step. This way the environment variables in the `.env` file will be accessible to the program run by that `Run` step just like they would be if any other `.env` library was used.
+The function is pretty simple: given a `Run` step, it checks for an `.env` file. If one exists, it parses the file and sets environment variables specifically for that `Run` step. This way the environment variables can be accessed by the executed program exactly as they would be if any other `.env` library was used.
 ### Blog post metadata
-Notice the section at the top of this page that tells you when this post was last edited? That was trickier to implement than you would think. It's easy enough to embed that information in my local environment, but when I ship the source code of this website to a docker container to be run in a server I'm renting, all of the source code gets copied, and the last modified time of all files gets set to the time that they were copied. If I hadn't implemented this step, every blog post would have the same last modified time. Basically, I've written an executable that reads the `blogs` directory and creates a `JSON` map of all the blog posts and their *true* last updated time. Then, when I parse through my blog posts to actually present them I reference the generated `JSON` file to get the true last updated time, rather than the blog post's file's last updated time. This executable is run everytime I make a git commit that includes changes to the blog directory. That way, I don't have to remember to actually run the executable.
+Notice the section at the top of this page that tells you when this post was last edited? That was trickier to implement than you would think. It's easy enough to access that information in my local environment, but this website is hosted remotely. That requires that I copy the source code of this website into a docker container. When the files are copied the last modified time of the copies is simply the time that they were copied. If I hadn't implemented this step, every blog post would always have the same last modified time.
+ Basically, I've written an executable that reads the `blogs` directory and creates a `JSON` map of all the blog posts and their *true* last updated time. Then, when I parse through my blog posts to actually present them I reference the generated `JSON` file to get the true last updated time, rather than the blog post's file's last updated time. This executable is run everytime I make a git commit that includes changes to the blog directory. That way, I don't have to remember to actually run the executable.
 ### The code
 ```zig
 pub fn main() !void {
@@ -103,4 +105,6 @@ Now accessing the content of this file is as easy as calling
 ```zig
 @embedFile("blogsMetadata.json")
 ```
-It may seem like overkill, and maybe it is but I personally really like having the dates for my blog posts. Thanks for reading this post, next week I plan on going over the frontend.
+It may seem like overkill, and maybe it is but I personally really like having the dates for my blog posts. Sure this whole ordeal increases the complexity of the site itself, but it contributes to my experience as the administrator. Updating blog posts is as simple as changing the contents of a `.md` file. The site takes care of the rest.
+
+ Thanks for reading this post, next week I plan on going over the frontend.
