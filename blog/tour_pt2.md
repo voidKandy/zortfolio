@@ -15,7 +15,7 @@ Like I said last week, I would like to touch on the frontend code for this porti
   &lt;script src="https://unpkg.com/htmx.org@2.0.4">&lt;/script>
   &lt;script type="module" src="https://md-block.verou.me/md-block.js">&lt;/script>
   &lt;link href="styles/prism.css" rel="stylesheet">
-  &lt;script src="scripts/prism.js">&lt;/script>
+  &lt;script src="scripts/prism.js" defer>&lt;/script>
 
   &lt;link rel="stylesheet" href="styles/crt.css">
   &lt;link rel="stylesheet" href="styles/global.css">
