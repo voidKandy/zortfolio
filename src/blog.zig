@@ -82,7 +82,7 @@ const BlogPostInfo = struct {
             return error.NotMarkdown;
         }
 
-        const content = try file.readToEndAlloc(a, 8092);
+        const content = try file.readToEndAlloc(a, 1024 * 16);
         const post_name: []u8 = blk: {
             var spl = std.mem.splitScalar(u8, content, '\n');
             const firstline =
@@ -170,17 +170,7 @@ fn getBlogPage(allocator: std.mem.Allocator, query_opt: ?[]const u8) !CurrentBlo
 }
 
 pub fn blogHandler(ctx: *Blog, r: Request, w: *std.Io.Writer) anyerror!void {
-    // const dir = BlogDirectory.get();
-
-    // for (0..dir.array.len) |i| {
-    //     log.warn(
-    //         \\ {s} : {s}
-    //     , .{
-    //         dir.array[i].name,
-    //         dir.array[i].path,
-    //     });
-    // }
-    const parts = http.parse(&r);
+    const parts = http.parseRequestParts(&r);
     const blog = getBlogPage(ctx.allocator, parts.query) catch |e| {
         log.err("failed to get blog post: {any}\n", .{e});
         return;
@@ -197,5 +187,4 @@ pub fn blogHandler(ctx: *Blog, r: Request, w: *std.Io.Writer) anyerror!void {
     };
     defer body.deinit(ctx.allocator);
     try w.writeAll(body.items);
-    // try r.sendBody(body.items);
 }

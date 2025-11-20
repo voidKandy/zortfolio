@@ -38,16 +38,23 @@
     white-space: normal;
   }
 
+  md-block hr {
+    border: 0.1px solid;
+    border-color: light-dark(var(--offblack), var(--offwhite));
+    filter: opacity(50%);
+  }
+
   md-block p {
     margin: 0 0.5rem;
-    line-height: 1.2;
+    line-height: 1.4;
   }
 
   md-block p code {
-    padding: 2px;
+    padding: 1.5px;
     border-radius: 3px;
     background-color: light-dark(var(--light-color), var(--dark-color));
     color: light-dark(var(--dark-color), var(--light-color));
+    filter: contrast(50%) sepia(10%);
   }
 
   md-block pre {
@@ -89,6 +96,7 @@
 
     #rendered-blog {
       padding: 0.25rem 0.5rem;
+      border-top: 1px dotted;
     }
 
     md-block pre {

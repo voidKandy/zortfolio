@@ -8,8 +8,10 @@ const Request = std.http.Server.Request;
 const BufferedWriter = @import("BufferedWriter.zig");
 
 pub const ComponentInfo = struct {
+    /// Filepath
     path: []u8,
     content: []u8,
+    /// Actual name of the HTML component
     name: []u8,
     last_modified: i128,
 
@@ -120,7 +122,7 @@ pub fn dispatch(self: *Self, a: std.mem.Allocator, request: *Request) !void {
 
     var not_found = false;
 
-    const parts = http.parse(&request.*);
+    const parts = http.parseRequestParts(&request.*);
 
     if (self.map.get(parts.path)) |func| {
         try func.call(request.*, &writer);

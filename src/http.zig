@@ -21,7 +21,7 @@ pub fn getHeader(r: Request, key: []const u8) ?[]const u8 {
     return null;
 }
 
-pub fn parse(r: *const Request) struct { path: []const u8, query: ?[]const u8 } {
+pub fn parseRequestParts(r: *const Request) struct { path: []const u8, query: ?[]const u8 } {
     const target = r.head.target;
     if (std.mem.indexOfScalar(u8, target, '?')) |i| {
         return .{
