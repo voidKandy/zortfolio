@@ -16,7 +16,7 @@ const HydrationTemplateInfo = struct {
     hydration: []u8,
 };
 
-const HydrationTemplate = zemplate.Template(HydrationTemplateInfo, @embedFile("pages/index.html"));
+pub const HydrationTemplate = zemplate.Template(HydrationTemplateInfo, @embedFile("index.html"));
 
 pub fn getHeader(r: Request, key: []const u8) ?[]const u8 {
     var iter = r.iterateHeaders();
@@ -202,12 +202,19 @@ const ConnectionContext = struct {
 
         var writer = try BufferedWriter.init(self.allocator);
         defer writer.deinit(self.allocator);
+        const func_opt = self.map_ptr.*.map.get(parts.path);
+        var not_found = func_opt == null;
 
-        if (self.map_ptr.*.map.get(parts.path)) |func| {
-            try func.call(request.*, &writer);
-        } else {
-            try self.map_ptr.*.notFound(request);
-            return;
+        if (func_opt) |func|
+            func.call(request.*, &writer) catch |e| {
+                log.err(
+                    \\ Error in route function: {any}
+                , .{e});
+                not_found = e == error.NotFound;
+            };
+
+        if (not_found) {
+            try self.map_ptr.*.notFound.call(request.*, &writer);
         }
 
         if (!is_htmx_request) {
@@ -256,6 +263,7 @@ const ConnectionContext = struct {
 
         try request.respond(writer.buffer.items, .{
             .keep_alive = true,
+            .status = if (not_found) .not_found else .ok,
         });
     }
 

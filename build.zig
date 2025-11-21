@@ -42,6 +42,24 @@ fn loadDotEnv(run: *std.Build.Step.Run) void {
     }
 }
 
+const PAGES_DIR = "pages";
+
+pub fn embedPages(b: *std.Build, exe: *std.Build.Step.Compile) !void {
+    var arena_state = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena_state.deinit();
+    const arena = arena_state.allocator();
+
+    const cwd = std.fs.cwd();
+    var dir = try cwd.openDir(PAGES_DIR, .{ .iterate = true });
+    var it = dir.iterate();
+
+    while (try it.next()) |entry| {
+        if (entry.kind != .file) continue;
+        if (entry.name[0] == '.') continue;
+        exe.root_module.addAnonymousImport(entry.name, .{ .root_source_file = b.path(try std.fmt.allocPrint(arena, "{s}/{s}", .{ PAGES_DIR, entry.name })) });
+    }
+}
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -80,6 +98,7 @@ pub fn build(b: *std.Build) void {
     exe.root_module.addImport("mime", mime.module("mime"));
     exe.root_module.addImport("tls", tls.module("tls"));
 
+    embedPages(b, exe) catch @panic("failed to embed pages");
     exe.root_module.addAnonymousImport("blogsMetadata.json", .{ .root_source_file = b.path("blogsMetadata.json") });
 
     b.installArtifact(exe);

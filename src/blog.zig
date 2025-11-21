@@ -118,8 +118,8 @@ const BlogPostInfo = struct {
     }
 };
 
-pub const BlogTemplate = zemplate.Template(CurrentBlogPage, @embedFile("pages/blog.html"));
-fn getBlogPage(allocator: std.mem.Allocator, query_opt: ?[]const u8) !CurrentBlogPage {
+pub const BlogTemplate = zemplate.Template(CurrentBlogPage, @embedFile("blog.html"));
+fn getBlogPage(allocator: std.mem.Allocator, query_opt: ?[]const u8) !?CurrentBlogPage {
     try BlogDirectory.tryUpdate();
     const all_posts = BlogDirectory.get().map;
 
@@ -169,7 +169,7 @@ fn getBlogPage(allocator: std.mem.Allocator, query_opt: ?[]const u8) !CurrentBlo
     if (post == null) {
         // BAD SHOULD NOT FOUND
         log.err("the name {s} does not have an associated post\n", .{postpath});
-        return error.NoMatchingPostname;
+        return null;
     }
 
     log.debug(
@@ -195,7 +195,8 @@ pub fn blogHandler(ctx: *Blog, r: Request, w: *std.Io.Writer) anyerror!void {
     const blog = getBlogPage(ctx.allocator, parts.query) catch |e| {
         log.err("failed to get blog post: {any}\n", .{e});
         return;
-    };
+    } orelse return error.NotFound;
+
     if (parts.query == null) {
         const redirect = try std.fmt.allocPrint(ctx.allocator, "/Blog?post={s}", .{blog.path});
 

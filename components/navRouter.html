@@ -38,9 +38,9 @@
 
         if (route === this.defaultRoute) {
           button.setAttribute("hx-get", `/`);
-        } else if (route === this.currentPath && this.currentQuery) {
+/*        } else if (route === this.currentPath && this.currentQuery) {
           button.setAttribute("hx-get", `/${route}?${this.currentQuery}`);
-        } else {
+*/        } else {
           button.setAttribute("hx-get", `/${route}`);
         }
         button.setAttribute("hx-target", this.target);

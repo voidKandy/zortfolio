@@ -6,7 +6,7 @@ const log = std.log.scoped(.routes);
 const Request = std.http.Server.Request;
 
 pub const Home = struct { about: []u8 = undefined };
-pub const HomeTemplate = zemplate.Template(Home, @embedFile("pages/home.html"));
+pub const HomeTemplate = zemplate.Template(Home, @embedFile("home.html"));
 pub fn homeHandler(ctx: *HomeTemplate, r: Request, w: *std.Io.Writer) anyerror!void {
     _ = r;
     const file = try std.fs.cwd().openFile("./about.md", .{});
@@ -24,7 +24,7 @@ pub fn homeHandler(ctx: *HomeTemplate, r: Request, w: *std.Io.Writer) anyerror!v
 }
 
 pub const Info = struct {};
-pub const InfoTemplate = zemplate.Template(Info, @embedFile("pages/info.html"));
+pub const InfoTemplate = zemplate.Template(Info, @embedFile("info.html"));
 pub fn infoHandler(ctx: *InfoTemplate, r: Request, w: *std.Io.Writer) anyerror!void {
     _ = r;
     var body = ctx.render() catch |err| {

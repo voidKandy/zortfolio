@@ -164,7 +164,7 @@ pub const MusicInfo = struct {
     }
 };
 
-pub const MusicTemplate = zemplate.Template(MusicInfo, @embedFile("pages/music.html"));
+pub const MusicTemplate = zemplate.Template(MusicInfo, @embedFile("music.html"));
 pub fn musicHandler(ctx: *MusicTemplate, r: Request, w: *std.Io.Writer) anyerror!void {
     _ = r;
     var body = ctx.render() catch |err| {

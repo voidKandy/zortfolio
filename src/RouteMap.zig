@@ -25,13 +25,12 @@ const RouteFunc = union(enum) {
 
 map: std.StringHashMap(RouteFunc),
 
-notFound: *const fn (r: *Request) anyerror!void = &struct {
-    fn handle(r: *Request) anyerror!void {
-        try r.respond("<div><h1>404 NOT FOUND</h1></div>", .{
-            .status = .not_found,
-        });
+notFound: RouteFunc = .{ .stateless = &struct {
+    fn handle(r: Request, w: *std.Io.Writer) anyerror!void {
+        _ = r;
+        try w.writeAll(@embedFile("404.html"));
     }
-}.handle,
+}.handle },
 
 const Self = @This();
 pub fn init(a: std.mem.Allocator) Self {
