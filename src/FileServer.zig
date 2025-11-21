@@ -191,7 +191,7 @@ pub const Options = struct {
     };
 };
 
-pub fn serve(s: *Self, request: *std.http.Server.Request) ServeError!void {
+pub fn serve(s: Self, request: *std.http.Server.Request) ServeError!void {
     const path = request.head.target;
     const file_name_adapter: FileNameAdapter = .{ .bytes = s.bytes.items };
     const file, const status: std.http.Status = b: {
@@ -210,6 +210,7 @@ pub fn serve(s: *Self, request: *std.http.Server.Request) ServeError!void {
 
     return request.respond(content, .{
         .status = status,
+        // .keep_alive = false,
         .extra_headers = &.{
             .{ .name = "content-type", .value = @tagName(file.mime_type) },
         },

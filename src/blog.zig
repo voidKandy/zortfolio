@@ -40,8 +40,9 @@ pub const Blog = struct {
         };
     }
     pub fn deinit(self: @This()) void {
+        _ = self;
         BlogMetadata.map.deinit();
-        BlogDirectory.deinit(self.allocator);
+        BlogDirectory.deinit();
     }
 };
 
@@ -66,6 +67,10 @@ const BlogPostInfo = struct {
         const name_cpy = try allocator.dupe(u8, name);
         std.mem.replaceScalar(u8, name_cpy, ' ', '-');
         return std.ascii.allocLowerString(allocator, name_cpy);
+    }
+
+    pub fn preImage(self: @This()) []const u8 {
+        return self.uri_path;
     }
 
     pub fn fromFile(dir: std.fs.Dir, path: []const u8, a: std.mem.Allocator) anyerror!@This() {
@@ -115,8 +120,8 @@ const BlogPostInfo = struct {
 
 pub const BlogTemplate = zemplate.Template(CurrentBlogPage, @embedFile("pages/blog.html"));
 fn getBlogPage(allocator: std.mem.Allocator, query_opt: ?[]const u8) !CurrentBlogPage {
-    try BlogDirectory.tryUpdate(allocator);
-    const all_posts = BlogDirectory.get().array;
+    try BlogDirectory.tryUpdate();
+    const all_posts = BlogDirectory.get().map;
 
     const postpath: []const u8 = blk: {
         if (query_opt) |query| {
@@ -130,23 +135,39 @@ fn getBlogPage(allocator: std.mem.Allocator, query_opt: ?[]const u8) !CurrentBlo
             }
             break :blk first;
         } else {
-            break :blk all_posts[0].uri_path;
+            break :blk @constCast(&all_posts.valueIterator()).next().?.uri_path;
         }
     };
 
     log.debug("GOT POSTNAME: {s}\n", .{postpath});
-    var post: ?BlogPostInfo = null;
+    const post = all_posts.get(std.hash_map.hashString(postpath));
 
-    for (all_posts) |p| {
-        if (std.mem.eql(u8, p.uri_path, postpath)) {
-            post = p;
-        }
-    }
     var out: std.io.Writer.Allocating = .init(allocator);
-    try std.json.Stringify.value(all_posts, .{ .whitespace = .indent_2 }, &out.writer);
+
+    // This is a workaround for the fact that zemplate doesnt have control flow
+    // we serialize the data and just pass it to the client as json
+    const ClientsideBlogData =
+        struct {
+            last_modified: i64,
+            name: []u8,
+            uri_path: []u8,
+        };
+    var iter = all_posts.valueIterator();
+    const posts_to_write = try allocator.alloc(ClientsideBlogData, all_posts.count());
+    defer allocator.free(posts_to_write);
+    var i: usize = 0;
+    while (iter.next()) |p| : (i += 1) {
+        posts_to_write[i] = .{
+            .last_modified = p.last_modified,
+            .name = p.name,
+            .uri_path = p.uri_path,
+        };
+    }
+    try std.json.Stringify.value(posts_to_write, .{ .whitespace = .indent_2 }, &out.writer);
     var arr = out.toArrayList();
 
     if (post == null) {
+        // BAD SHOULD NOT FOUND
         log.err("the name {s} does not have an associated post\n", .{postpath});
         return error.NoMatchingPostname;
     }
@@ -177,8 +198,20 @@ pub fn blogHandler(ctx: *Blog, r: Request, w: *std.Io.Writer) anyerror!void {
     };
     if (parts.query == null) {
         const redirect = try std.fmt.allocPrint(ctx.allocator, "/Blog?post={s}", .{blog.path});
+
+        const extra_headers: []const std.http.Header =
+            if (http.getHeader(r, "x-hydrated")) |v|
+                &.{ .{ .name = "Location", .value = redirect }, .{ .name = "x-hydrated", .value = v } }
+            else
+                &.{
+                    .{ .name = "Location", .value = redirect },
+                };
+
         defer ctx.allocator.free(redirect);
-        try @constCast(&r).respond("", .{ .status = .found, .extra_headers = &.{.{ .name = "Location", .value = redirect }} });
+        try @constCast(&r).respond("", .{
+            .status = .found,
+            .extra_headers = extra_headers,
+        });
         return;
     }
     var template = BlogTemplate.init(blog, ctx.allocator);

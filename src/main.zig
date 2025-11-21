@@ -29,10 +29,10 @@ pub fn main() !void {
     var blg = try blog.Blog.init(allocator);
     defer blg.deinit();
 
-    try dispatcher.router.registerStatefulHandler("/", &home, &routes.homeHandler);
-    try dispatcher.router.registerStatefulHandler("/Blog", &blg, &blog.blogHandler);
-    try dispatcher.router.registerStatefulHandler("/Music", &mtmp, &music.musicHandler);
-    try dispatcher.router.registerStatefulHandler("/Info", &info, &routes.infoHandler);
+    try dispatcher.routes_map.registerStatefulHandler("/", &home, &routes.homeHandler);
+    try dispatcher.routes_map.registerStatefulHandler("/Blog", &blg, &blog.blogHandler);
+    try dispatcher.routes_map.registerStatefulHandler("/Music", &mtmp, &music.musicHandler);
+    try dispatcher.routes_map.registerStatefulHandler("/Info", &info, &routes.infoHandler);
 
     // try router.withTls(std.fs.cwd(), "local_ssl/localhost.crt", "local_ssl/localhost.key");
     var env_map = try std.process.getEnvMap(allocator);

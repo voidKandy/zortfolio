@@ -115,39 +115,38 @@
   <div id="rendered-blog">
     <script>
       function renderLastModified() {
-        try {
-          const raw = "||zz .last_modified zz||";
-          console.log(raw);
-          if (raw && /^\d+$/.test(raw)) {
-            const nanos = BigInt(raw);
-            const millisBigInt = nanos / 1_000_000n;
-            const millis = Number(millisBigInt);
-            const pstString = new Date(millis).toLocaleString("en-US", {
-              timeZone: "America/Los_Angeles",
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-              hour: "numeric",
-              minute: "numeric",
-              second: "numeric",
-              hour12: true,
-              timeZoneName: "short"
-            });
-            document.getElementById("last-modified").textContent = pstString;
-          } else {
-            document.getElementById("last-modified").textContent = "Unknown date";
+        const last_modified = document.getElementById("last-modified");
+        if (last_modified) {
+          try {
+            const raw = "||zz .last_modified zz||";
+            if (raw && /^\d+$/.test(raw)) {
+              const nanos = BigInt(raw);
+              const millisBigInt = nanos / 1_000_000n;
+              const millis = Number(millisBigInt);
+              const pstString = new Date(millis).toLocaleString("en-US", {
+                timeZone: "America/Los_Angeles",
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+                hour: "numeric",
+                minute: "numeric",
+                second: "numeric",
+                hour12: true,
+                timeZoneName: "short"
+              });
+              last_modified.textContent = pstString;
+            } else {
+              last_modified.textContent = "Unknown date";
+            }
+          } catch (err) {
+            console.error("Error converting date:", err);
           }
-        } catch (err) {
-          console.error("Error converting date:", err);
         }
       }
       renderLastModified();
       document.addEventListener('DOMContentLoaded', () => {
         renderLastModified();
-        document.addEventListener("htmx:xhr:loadend", (evt) => {
-          renderLastModified();
-        });
 
       })
     </script>

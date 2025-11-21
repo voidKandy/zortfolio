@@ -58,8 +58,6 @@
    * @property {BigInt} last_modified - Timestamp of when the post was last modified.
    * @property {string} name - Name of the blog post.
    * @property {string} uri_path - Path to the blog post.
-   * @property {string} file_name - The name of the file for the blog post.
-   * @property {string} content - The content of the blog post.
 
    */
   class BlogSelectorList extends HTMLElement {
@@ -126,7 +124,7 @@
         const posts = scriptTag ? JSON.parse(scriptTag.textContent) : [];
         return posts.sort((a, b) => b.last_modified - a.last_modified);
       } catch (e) {
-        console.error(`Error parsing posts: ${e}\nAttr JSON: ${postsAttr}`);
+        console.error(`Error parsing posts: ${e}\ JSON: ${scriptTag.textContent}`);
         return [];
       }
     }

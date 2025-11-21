@@ -2,12 +2,21 @@ const std = @import("std");
 const log = std.log.scoped(.http);
 const tls = @import("tls");
 const mime = @import("mime");
+const zemplate = @import("zemplate");
 
 const FileServer = @import("FileServer.zig");
 const Router = @import("Router.zig");
 const BufferedWriter = @import("BufferedWriter.zig");
 const Request = std.http.Server.Request;
 const Connection = std.net.Server.Connection;
+const RouteMap = @import("RouteMap.zig");
+const ComponentsDirectory = @import("components.zig").ComponentsDirectory;
+
+const HydrationTemplateInfo = struct {
+    hydration: []u8,
+};
+
+const HydrationTemplate = zemplate.Template(HydrationTemplateInfo, @embedFile("pages/index.html"));
 
 pub fn getHeader(r: Request, key: []const u8) ?[]const u8 {
     var iter = r.iterateHeaders();
@@ -36,8 +45,9 @@ pub fn parseRequestParts(r: *const Request) struct { path: []const u8, query: ?[
     }
 }
 
+/// Only one instance, spawns ConnectionContexts per connection
 pub const Dispatcher = struct {
-    router: Router,
+    routes_map: RouteMap,
     files: FileServer,
     allocator: std.mem.Allocator,
     tls_auth: ?*tls.config.CertKeyPair = null,
@@ -49,12 +59,14 @@ pub const Dispatcher = struct {
         a: std.mem.Allocator,
         dir: std.fs.Dir,
     ) Self {
+        @import("components.zig").ComponentsDirectory.init(a);
         return .{
+            .routes_map = RouteMap.init(a),
             .files = FileServer.init(.{
                 .allocator = a,
                 .root_dir = dir,
             }) catch @panic("failed to init file server"),
-            .router = Router.init(a),
+            // .router = Router.init(a),
             .allocator = a,
         };
     }
@@ -66,7 +78,8 @@ pub const Dispatcher = struct {
     }
 
     pub fn deinit(self: *Self) void {
-        self.router.deinit(self.allocator);
+        @import("components.zig").ComponentsDirectory.deinit();
+        self.routes_map.deinit();
         if (self.tls_auth) |a| {
             a.deinit(self.allocator);
             self.allocator.destroy(a);
@@ -85,7 +98,7 @@ pub const Dispatcher = struct {
         var gpa = std.heap.GeneralPurposeAllocator(.{
             .thread_safe = true,
         }){};
-        defer if (gpa.detectLeaks()) log.err("LEAKS DETECTED IN CONNECTION THREAD ALLOCATOR\n", .{});
+        const allocator = gpa.allocator();
 
         while (true) {
             var conn = self.server.accept() catch |err| {
@@ -96,14 +109,14 @@ pub const Dispatcher = struct {
             };
             errdefer conn.stream.close();
 
-            log.info(
+            log.warn(
                 \\ Connected to client at address: {f}
                 \\
             , .{conn.address});
 
-            const ctx = self.allocator.create(ConnectionContext) catch @panic("out of memory");
+            const ctx = allocator.create(ConnectionContext) catch @panic("out of memory");
             ctx.* = try ConnectionContext.init(
-                gpa.allocator(),
+                allocator,
                 &self,
                 conn,
             );
@@ -113,7 +126,7 @@ pub const Dispatcher = struct {
             }) catch |err| {
                 log.err("unable to spawn connection thread: {s}", .{@errorName(err)});
                 ctx.deinit();
-                self.allocator.destroy(ctx);
+                allocator.destroy(ctx);
                 continue;
             };
 
@@ -130,26 +143,30 @@ const ConnectionType = union(enum) {
 /// Data associated with a connection to a single client
 const ConnectionContext = struct {
     allocator: std.mem.Allocator,
+    id: i64,
     recv_buf: []u8,
     send_buf: []u8,
     connection: ConnectionType,
     auth: *const ?*tls.config.CertKeyPair,
-    file_server: FileServer,
-    router: Router,
-
+    file_server: *const FileServer,
+    map_ptr: *const @import("RouteMap.zig"),
     const Self = @This();
     const RECV_BUF_SIZE = 16 * 1024;
     const SEND_BUF_SIZE = 16 * 1024;
 
-    fn init(a: std.mem.Allocator, dispatcher: *const *Dispatcher, conn: std.net.Server.Connection) std.mem.Allocator.Error!Self {
+    var staticid: i64 = 0;
+    fn init(allocator: std.mem.Allocator, dispatcher: *const *Dispatcher, conn: std.net.Server.Connection) std.mem.Allocator.Error!Self {
+        const myid = staticid;
+        staticid += 1;
         return .{
-            .allocator = a,
+            .allocator = allocator,
+            .id = myid,
             .connection = .{ .http = conn },
-            .file_server = try dispatcher.*.files.clone(a),
-            .router = try dispatcher.*.router.clone(),
+            .file_server = &dispatcher.*.files,
             .auth = &dispatcher.*.tls_auth,
-            .recv_buf = try a.alloc(u8, RECV_BUF_SIZE),
-            .send_buf = try a.alloc(u8, SEND_BUF_SIZE),
+            .recv_buf = try allocator.alloc(u8, RECV_BUF_SIZE),
+            .send_buf = try allocator.alloc(u8, SEND_BUF_SIZE),
+            .map_ptr = &dispatcher.*.routes_map,
         };
     }
 
@@ -169,13 +186,83 @@ const ConnectionContext = struct {
         self.auth = undefined;
         self.allocator.free(self.recv_buf);
         self.allocator.free(self.send_buf);
-        self.file_server.deinit(self.allocator);
-        self.router.deinit(self.allocator);
+    }
+
+    pub fn dispatchRoutes(self: *Self, request: *Request) !void {
+        const is_htmx_request = getHeader(request.*, "hx-request") != null;
+        const hydrated_info = getHeader(request.*, "x-hydrated");
+        const parts = parseRequestParts(&request.*);
+
+        log.debug(
+            \\ is htmx: {any}
+            \\ info: {s}
+        , .{ is_htmx_request, hydrated_info orelse "null" });
+
+        const oob_swap = if (hydrated_info == null) "innerHTML" else "beforeend";
+
+        var writer = try BufferedWriter.init(self.allocator);
+        defer writer.deinit(self.allocator);
+
+        if (self.map_ptr.*.map.get(parts.path)) |func| {
+            try func.call(request.*, &writer);
+        } else {
+            try self.map_ptr.*.notFound(request);
+            return;
+        }
+
+        if (!is_htmx_request) {
+            var tmplt = HydrationTemplate.init(.{
+                .hydration = try writer.buffer.toOwnedSlice(self.allocator),
+            }, self.allocator);
+
+            var render = try tmplt.render();
+            try writer.interface.writeAll(try render.toOwnedSlice(self.allocator));
+        }
+
+        const hydration_html = blk: {
+            var component_buffer = std.ArrayList(u8).initCapacity(self.allocator, 1024) catch @panic("out of memory");
+            component_buffer.appendSlice(self.allocator, std.fmt.allocPrint(self.allocator,
+                \\  <section id="components-cache" hx-swap-oob="{s}">
+            , .{oob_swap}) catch @panic("out of memory")) catch @panic("out of memory");
+            ComponentsDirectory.tryUpdate() catch |e| log.err("Failed to update components directory: {any}\n", .{e});
+            var map = try ComponentsDirectory.get().map.clone();
+
+            if (hydrated_info) |header| {
+                var header_elems = std.mem.splitScalar(u8, std.mem.trim(u8, header, "\n []"), ',');
+                while (header_elems.next()) |elem_name| {
+                    const sanitized = std.mem.trim(u8, elem_name, "\n \"");
+                    const hash = std.hash_map.hashString(sanitized);
+                    log.debug("removing {s} : {d}\n", .{ sanitized, hash });
+                    const removed = map.remove(std.hash_map.hashString(sanitized));
+                    if (!removed)
+                        log.warn("failed to remove {s}\n", .{sanitized});
+                }
+            }
+
+            var needed_iter = map.valueIterator();
+            while (needed_iter.next()) |comp| {
+                if (std.mem.indexOf(u8, writer.buffer.items, comp.name) != null) {
+                    log.debug("including {s}\n", .{comp.name});
+                    try component_buffer.appendSlice(self.allocator, comp.content);
+                }
+            }
+
+            component_buffer.appendSlice(self.allocator,
+                \\  </section>
+            ) catch @panic("out of memory");
+            break :blk try component_buffer.toOwnedSlice(self.allocator);
+        };
+        try writer.buffer.appendSlice(self.allocator, hydration_html);
+
+        try request.respond(writer.buffer.items, .{
+            .keep_alive = true,
+        });
     }
 
     fn handleConnection(self: *Self) !void {
         var server: std.http.Server = undefined;
         defer self.deinit();
+        const addr = self.connection.http.address;
 
         if (self.auth.*) |auth_ptr| {
             const tls_conn = try self.allocator.create(tls.Connection);
@@ -202,13 +289,14 @@ const ConnectionContext = struct {
                     var req = server.receiveHead() catch |err| switch (err) {
                         error.HttpConnectionClosing => {
                             log.warn(
-                                \\ Closing Connection
-                            , .{});
+                                \\ Closing Connection with {f}
+                            , .{addr});
                             break;
                         },
                         else => {
                             log.err("receiveHead err: {any}", .{err});
-                            break;
+                            @panic("");
+                            // break;
                         },
                     };
 
@@ -240,12 +328,18 @@ const ConnectionContext = struct {
 
     fn serveHTTP(self: *Self, server: *std.http.Server, request: *Request) !void {
         var body: ?[]u8 = null;
-        defer if (body) |b| self.allocator.free(b);
 
         if (self.file_server.serve(request)) |_| {
+            log.info(
+                \\ File server served: {s}
+            , .{request.head.target});
             return;
         } else |err| switch (err) {
-            error.FileNotFound => {},
+            error.FileNotFound => {
+                log.warn(
+                    \\ File server could not find: {s}
+                , .{request.head.target});
+            },
             else => {
                 log.err(
                     \\ File server encountered an error: {any}
@@ -262,7 +356,7 @@ const ConnectionContext = struct {
             log.info("Received body: {s}", .{body.?});
         }
 
-        try self.router.dispatch(self.allocator, request);
+        try self.dispatchRoutes(request);
     }
 };
 
