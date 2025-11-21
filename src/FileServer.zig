@@ -191,14 +191,14 @@ pub const Options = struct {
     };
 };
 
-pub fn serve(s: Self, request: *std.http.Server.Request) ServeError!void {
+pub fn serve(self: Self, request: *std.http.Server.Request) ServeError!void {
     const path = request.head.target;
-    const file_name_adapter: FileNameAdapter = .{ .bytes = s.bytes.items };
+    const file_name_adapter: FileNameAdapter = .{ .bytes = self.bytes.items };
     const file, const status: std.http.Status = b: {
         break :b .{
-            s.files.getKeyAdapted(path, file_name_adapter) orelse {
+            self.files.getKeyAdapted(path, file_name_adapter) orelse {
                 break :b .{
-                    s.files.getKeyAdapted(@as([]const u8, "404"), file_name_adapter) orelse
+                    self.files.getKeyAdapted(@as([]const u8, "404"), file_name_adapter) orelse
                         return error.FileNotFound,
                     .not_found,
                 };
@@ -206,7 +206,7 @@ pub fn serve(s: Self, request: *std.http.Server.Request) ServeError!void {
             .ok,
         };
     };
-    const content = s.bytes.items[file.contents_start..][0..file.contents_len];
+    const content = self.bytes.items[file.contents_start..][0..file.contents_len];
 
     return request.respond(content, .{
         .status = status,
