@@ -303,8 +303,7 @@ const ConnectionContext = struct {
                         },
                         else => {
                             log.err("receiveHead err: {any}", .{err});
-                            @panic("");
-                            // break;
+                            break;
                         },
                     };
 
