@@ -1,6 +1,5 @@
 const std = @import("std");
 const log = std.log.scoped(.Router);
-const zemplate = @import("zemplate");
 const http = @import("http.zig");
 const ComponentsDirectory = @import("components.zig").ComponentsDirectory;
 

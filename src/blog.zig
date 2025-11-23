@@ -30,14 +30,11 @@ const BlogMetadata = struct {
     }
 };
 
-pub const Blog = struct {
-    allocator: std.mem.Allocator,
+pub const StaticBlogData = struct {
     pub fn init(a: std.mem.Allocator) !@This() {
         try BlogMetadata.loadMap(a);
         BlogDirectory.init(a);
-        return .{
-            .allocator = a,
-        };
+        return .{};
     }
     pub fn deinit(self: @This()) void {
         _ = self;
@@ -52,9 +49,20 @@ pub const CurrentBlogPage = struct {
     filename: []const u8,
     last_modified: []u8,
     content: []u8,
-    /// Serialized []BlogPostInfo
-    all_blogs_json: []u8,
+    all_blogs: []ClientsideBlogData,
+
+    fn deinit(self: @This(), a: std.mem.Allocator) void {
+        a.free(self.last_modified);
+        a.free(self.all_blogs);
+    }
 };
+
+const ClientsideBlogData =
+    struct {
+        last_modified: i64,
+        name: []u8,
+        uri_path: []u8,
+    };
 
 const BlogPostInfo = struct {
     last_modified: i64,
@@ -119,6 +127,7 @@ const BlogPostInfo = struct {
 };
 
 pub const BlogTemplate = zemplate.Template(CurrentBlogPage, @embedFile("blog.html"));
+/// returned blog page needs to be freed
 fn getBlogPage(allocator: std.mem.Allocator, query_opt: ?[]const u8) !?CurrentBlogPage {
     try BlogDirectory.tryUpdate();
     const all_posts = BlogDirectory.get().map;
@@ -142,29 +151,19 @@ fn getBlogPage(allocator: std.mem.Allocator, query_opt: ?[]const u8) !?CurrentBl
     log.debug("GOT POSTNAME: {s}\n", .{postpath});
     const post = all_posts.get(std.hash_map.hashString(postpath));
 
-    var out: std.io.Writer.Allocating = .init(allocator);
-
     // This is a workaround for the fact that zemplate doesnt have control flow
     // we serialize the data and just pass it to the client as json
-    const ClientsideBlogData =
-        struct {
-            last_modified: i64,
-            name: []u8,
-            uri_path: []u8,
-        };
     var iter = all_posts.valueIterator();
-    const posts_to_write = try allocator.alloc(ClientsideBlogData, all_posts.count());
-    defer allocator.free(posts_to_write);
+    const blogs_data = try allocator.alloc(ClientsideBlogData, all_posts.count());
+    // defer allocator.free(blogs_data);
     var i: usize = 0;
     while (iter.next()) |p| : (i += 1) {
-        posts_to_write[i] = .{
+        blogs_data[i] = .{
             .last_modified = p.last_modified,
             .name = p.name,
             .uri_path = p.uri_path,
         };
     }
-    try std.json.Stringify.value(posts_to_write, .{ .whitespace = .indent_2 }, &out.writer);
-    var arr = out.toArrayList();
 
     if (post == null) {
         // BAD SHOULD NOT FOUND
@@ -186,19 +185,20 @@ fn getBlogPage(allocator: std.mem.Allocator, query_opt: ?[]const u8) !?CurrentBl
         .filename = post.?.file_name,
         .last_modified = last_modified_string,
         .content = post.?.content,
-        .all_blogs_json = try arr.toOwnedSlice(allocator),
+        .all_blogs = blogs_data,
     };
 }
 
-pub fn blogHandler(ctx: *Blog, r: Request, w: *std.Io.Writer) anyerror!void {
+/// This could be implemented as a stateless function, but this way the initialization of static blog data is enforced
+pub fn blogHandler(_: *StaticBlogData, a: std.mem.Allocator, r: Request, w: *std.Io.Writer) anyerror!void {
     const parts = http.parseRequestParts(&r);
-    const blog = getBlogPage(ctx.allocator, parts.query) catch |e| {
+    const blog = getBlogPage(a, parts.query) catch |e| {
         log.err("failed to get blog post: {any}\n", .{e});
         return;
     } orelse return error.NotFound;
-
+    defer blog.deinit(a);
     if (parts.query == null) {
-        const redirect = try std.fmt.allocPrint(ctx.allocator, "/Blog?post={s}", .{blog.path});
+        const redirect = try std.fmt.allocPrint(a, "/Blog?post={s}", .{blog.path});
 
         const extra_headers: []const std.http.Header =
             if (http.getHeader(r, "x-hydrated")) |v|
@@ -208,17 +208,17 @@ pub fn blogHandler(ctx: *Blog, r: Request, w: *std.Io.Writer) anyerror!void {
                     .{ .name = "Location", .value = redirect },
                 };
 
-        defer ctx.allocator.free(redirect);
+        defer a.free(redirect);
         try @constCast(&r).respond("", .{
             .status = .found,
             .extra_headers = extra_headers,
         });
         return;
     }
-    var template = BlogTemplate.init(blog, ctx.allocator);
-    var body = template.render() catch |err| {
+    var template = BlogTemplate.init(blog);
+    const body = template.render(a, .{}) catch |err| {
         std.debug.panic("Failed to render template: {}", .{err});
     };
-    defer body.deinit(ctx.allocator);
-    try w.writeAll(body.items);
+    defer a.free(body);
+    try w.writeAll(body);
 }

@@ -206,7 +206,7 @@ const ConnectionContext = struct {
         var not_found = func_opt == null;
 
         if (func_opt) |func|
-            func.call(request.*, &writer) catch |e| {
+            func.call(self.allocator, request.*, &writer) catch |e| {
                 log.err(
                     \\ Error in route function: {any}
                 , .{e});
@@ -214,16 +214,16 @@ const ConnectionContext = struct {
             };
 
         if (not_found) {
-            try self.map_ptr.*.notFound.call(request.*, &writer);
+            try self.map_ptr.*.notFound.call(self.allocator, request.*, &writer);
         }
 
         if (!is_htmx_request) {
             var tmplt = HydrationTemplate.init(.{
                 .hydration = try writer.buffer.toOwnedSlice(self.allocator),
-            }, self.allocator);
+            });
 
-            var render = try tmplt.render();
-            try writer.interface.writeAll(try render.toOwnedSlice(self.allocator));
+            const render = try tmplt.render(self.allocator, .{});
+            try writer.interface.writeAll(render);
         }
 
         const hydration_html = blk: {

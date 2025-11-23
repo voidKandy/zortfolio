@@ -5,33 +5,24 @@ const ArrayList = std.ArrayList;
 const log = std.log.scoped(.routes);
 const Request = std.http.Server.Request;
 
-pub const Home = struct { about: []u8 = undefined };
+pub const Home = struct { about: []const u8 = @embedFile("about.md") };
 pub const HomeTemplate = zemplate.Template(Home, @embedFile("home.html"));
-pub fn homeHandler(ctx: *HomeTemplate, r: Request, w: *std.Io.Writer) anyerror!void {
+pub fn homeHandler(ctx: *HomeTemplate, a: std.mem.Allocator, r: Request, w: *std.Io.Writer) anyerror!void {
     _ = r;
-    const file = try std.fs.cwd().openFile("./about.md", .{});
-    const buffer = try ctx.allocator.alloc(u8, 1024 * 256);
-    var reader = file.reader(&.{});
-    const n = try reader.interface.readSliceShort(buffer);
-    ctx.context.about = buffer[0..n];
-
-    var body = ctx.render() catch |err| {
+    const body = ctx.render(a, .{}) catch |err| {
         std.debug.panic("Failed to render template: {any}", .{err});
     };
-    defer body.deinit(ctx.allocator);
-    // r.sendBody(body.items) catch return;
-    try w.writeAll(body.items);
+    defer a.free(body);
+    try w.writeAll(body);
 }
-
 pub const Info = struct {};
 pub const InfoTemplate = zemplate.Template(Info, @embedFile("info.html"));
-pub fn infoHandler(ctx: *InfoTemplate, r: Request, w: *std.Io.Writer) anyerror!void {
+pub fn infoHandler(ctx: *InfoTemplate, a: std.mem.Allocator, r: Request, w: *std.Io.Writer) anyerror!void {
     _ = r;
-    var body = ctx.render() catch |err| {
+    const body = ctx.render(a, .{}) catch |err| {
         std.debug.panic("Failed to render template: {any}", .{err});
     };
-    defer body.deinit(ctx.allocator);
 
-    try w.writeAll(body.items);
-    // r.sendBody(body.items) catch return;
+    defer a.free(body);
+    try w.writeAll(body);
 }

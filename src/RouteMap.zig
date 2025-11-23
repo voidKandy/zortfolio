@@ -6,7 +6,7 @@ const BufferedWriter = @import("BufferedWriter.zig");
 pub const StatelessFunc =
     *const fn (r: Request, writer: *std.Io.Writer) anyerror!void;
 
-pub const StatefulFunc = *fn (*const anyopaque, Request, *std.Io.Writer) anyerror!void;
+pub const StatefulFunc = *fn (*const anyopaque, std.mem.Allocator, Request, *std.Io.Writer) anyerror!void;
 
 const RouteFunc = union(enum) {
     stateless: StatelessFunc,
@@ -15,9 +15,9 @@ const RouteFunc = union(enum) {
         func_ptr: usize,
     },
 
-    pub fn call(self: @This(), request: Request, writer: *BufferedWriter) anyerror!void {
+    pub fn call(self: @This(), a: std.mem.Allocator, request: Request, writer: *BufferedWriter) anyerror!void {
         switch (self) {
-            .stateful => |b| try @call(.auto, @as(StatefulFunc, @ptrFromInt(b.func_ptr)), .{ @as(*anyopaque, @ptrFromInt(b.state_ptr)), request, &writer.interface }),
+            .stateful => |b| try @call(.auto, @as(StatefulFunc, @ptrFromInt(b.func_ptr)), .{ @as(*anyopaque, @ptrFromInt(b.state_ptr)), a, request, &writer.interface }),
             .stateless => |f| try f(request, &writer.interface),
         }
     }
@@ -60,19 +60,25 @@ inline fn checkStatefulHandlerRegisterArgs(func: anytype) void {
                 @typeName(@TypeOf(func)));
         };
 
-        // 2) snd arg is Request
-        if (f.params.len != 3) {
+        if (f.params.len != 4) {
             @compileError("Expected func to have three parameters");
         }
+
         const arg_2_type = f.params[1].type.?;
-        if (arg_2_type != Request) {
-            @compileError("Expected func's second argument to be of type Request. Found " ++
+        if (arg_2_type != std.mem.Allocator) {
+            @compileError("Expected func's second argument to be of type Allocator. Found " ++
                 @typeName(arg_2_type));
         }
 
         const arg_3_type = f.params[2].type.?;
-        if (arg_3_type != *std.Io.Writer) {
-            @compileError("Expected func's second argument to be of type *std.Io.Writer. Found " ++
+        if (arg_3_type != Request) {
+            @compileError("Expected func's third argument to be of type Request. Found " ++
+                @typeName(arg_2_type));
+        }
+
+        const arg_4_type = f.params[3].type.?;
+        if (arg_4_type != *std.Io.Writer) {
+            @compileError("Expected func's fourth argument to be of type *std.Io.Writer. Found " ++
                 @typeName(arg_3_type));
         }
 

@@ -23,16 +23,16 @@ pub fn main() !void {
 
     var music_info = try music.MusicInfo.build(allocator);
     defer music_info.deinit(allocator);
-    var mtmp = music.MusicTemplate.init(music_info, allocator);
-    var home = routes.HomeTemplate.init(routes.Home{}, allocator);
-    var info = routes.InfoTemplate.init(routes.Info{}, allocator);
-    var blg = try blog.Blog.init(allocator);
-    defer blg.deinit();
+    var mtmp = music.MusicTemplate.init(music_info);
+    var home = routes.HomeTemplate.init(routes.Home{});
+    var info = routes.InfoTemplate.init(routes.Info{});
+    var blg_dat = try blog.StaticBlogData.init(allocator);
+    defer blg_dat.deinit();
 
     try dispatcher.routes_map.registerStatefulHandler("/", &home, &routes.homeHandler);
-    try dispatcher.routes_map.registerStatefulHandler("/Blog", &blg, &blog.blogHandler);
     try dispatcher.routes_map.registerStatefulHandler("/Music", &mtmp, &music.musicHandler);
     try dispatcher.routes_map.registerStatefulHandler("/Info", &info, &routes.infoHandler);
+    try dispatcher.routes_map.registerStatefulHandler("/Blog", &blg_dat, &blog.blogHandler);
 
     // try router.withTls(std.fs.cwd(), "local_ssl/localhost.crt", "local_ssl/localhost.key");
     var env_map = try std.process.getEnvMap(allocator);
