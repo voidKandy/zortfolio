@@ -343,7 +343,7 @@ const ConnectionContext = struct {
             return;
         } else |err| switch (err) {
             error.FileNotFound => {
-                log.warn(
+                log.info(
                     \\ File server could not find: {s}
                 , .{request.head.target});
             },
@@ -356,7 +356,7 @@ const ConnectionContext = struct {
         }
 
         if (request.head.content_length) |content_len| {
-            log.warn("reading content len: {d}\n", .{content_len});
+            log.info("reading content len: {d}\n", .{content_len});
             const buf = self.allocator.alloc(u8, content_len) catch @panic("out of memory");
             var reader = server.reader.bodyReader(buf, request.head.transfer_encoding, content_len);
             body = try reader.readAlloc(self.allocator, content_len);
