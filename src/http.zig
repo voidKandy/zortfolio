@@ -5,7 +5,6 @@ const mime = @import("mime");
 const zemplate = @import("zemplate");
 
 const FileServer = @import("FileServer.zig");
-const Router = @import("Router.zig");
 const BufferedWriter = @import("BufferedWriter.zig");
 const Request = std.http.Server.Request;
 const Connection = std.net.Server.Connection;
@@ -66,7 +65,6 @@ pub const Dispatcher = struct {
                 .allocator = a,
                 .root_dir = dir,
             }) catch @panic("failed to init file server"),
-            // .router = Router.init(a),
             .allocator = a,
         };
     }
@@ -291,6 +289,7 @@ const ConnectionContext = struct {
                 \\ Created HTTP connection
             , .{});
         }
+
         while (true) {
             switch (server.reader.state) {
                 .ready => {

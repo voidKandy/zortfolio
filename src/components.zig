@@ -1,5 +1,5 @@
 const std = @import("std");
-const log = std.log.scoped(.Router);
+const log = std.log.scoped(.components);
 const http = @import("http.zig");
 pub const ComponentsDirectory = @import("cache.zig").CachedDirectory(ComponentInfo, "components");
 

@@ -17,6 +17,7 @@ pub fn main() !void {
         .thread_safe = true,
     }){};
     defer if (gpa.detectLeaks()) std.log.err("LEAKS DETECTED IN MAIN ALLOCATOR\n", .{});
+
     const allocator = gpa.allocator();
     var dispatcher = Dispatcher.init(allocator, try std.fs.cwd().openDir("serve", .{ .iterate = true }));
     defer dispatcher.deinit();
