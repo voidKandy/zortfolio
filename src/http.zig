@@ -11,11 +11,12 @@ const Connection = std.net.Server.Connection;
 const RouteMap = @import("RouteMap.zig");
 const ComponentsDirectory = @import("components.zig").ComponentsDirectory;
 
-const HydrationTemplateInfo = struct {
-    hydration: []u8,
+const FullPageResponse = struct {
+    route_content: []u8,
 };
 
-pub const HydrationTemplate = zemplate.Template(HydrationTemplateInfo, @embedFile("index.html"));
+/// When the client requires a full page refresh we send them this
+pub const FPRTemplate = zemplate.Template(FullPageResponse, @embedFile("index.html"));
 
 pub fn getHeader(r: Request, key: []const u8) ?[]const u8 {
     var iter = r.iterateHeaders();
@@ -216,8 +217,8 @@ const ConnectionContext = struct {
         }
 
         if (!is_htmx_request) {
-            var tmplt = HydrationTemplate.init(.{
-                .hydration = try writer.buffer.toOwnedSlice(self.allocator),
+            var tmplt = FPRTemplate.init(.{
+                .route_content = try writer.buffer.toOwnedSlice(self.allocator),
             });
 
             const render = try tmplt.render(self.allocator, .{});
@@ -236,6 +237,7 @@ const ConnectionContext = struct {
                 var header_elems = std.mem.splitScalar(u8, std.mem.trim(u8, header, "\n []"), ',');
                 while (header_elems.next()) |elem_name| {
                     const sanitized = std.mem.trim(u8, elem_name, "\n \"");
+                    if (sanitized.len == 0) continue;
                     const hash = std.hash_map.hashString(sanitized);
                     log.debug("removing {s} : {d}\n", .{ sanitized, hash });
                     const removed = map.remove(std.hash_map.hashString(sanitized));
@@ -245,13 +247,21 @@ const ConnectionContext = struct {
             }
 
             var needed_iter = map.valueIterator();
+            var included_counter: usize = 0;
             while (needed_iter.next()) |comp| {
-                if (std.mem.indexOf(u8, writer.buffer.items, comp.name) != null) {
+                const needle =
+                    try std.fmt.allocPrint(self.allocator, "<{s}", .{comp.name});
+                if (std.mem.indexOf(u8, writer.buffer.items, needle) != null) {
                     log.debug("including {s}\n", .{comp.name});
                     try component_buffer.appendSlice(self.allocator, comp.content);
+                    included_counter += 1;
                 }
             }
 
+            if (included_counter == 0) {
+                component_buffer.deinit(self.allocator);
+                break :blk "";
+            }
             component_buffer.appendSlice(self.allocator,
                 \\  </section>
             ) catch @panic("out of memory");

@@ -4,7 +4,7 @@ const http = @import("http.zig");
 const ArrayList = std.ArrayList;
 const Request = std.http.Server.Request;
 const cache = @import("cache.zig");
-const BlogDirectory = cache.CachedDirectory(BlogPostInfo, "blog");
+const BlogDirectory = cache.CachedDirectory(BlogPostInfo, "serve/blog");
 const log = std.log.scoped(.blog);
 
 const BlogMetadata = struct {
@@ -48,7 +48,6 @@ pub const CurrentBlogPage = struct {
     name: []const u8,
     filename: []const u8,
     last_modified: []u8,
-    content: []u8,
     all_blogs: []ClientsideBlogData,
 
     fn deinit(self: @This(), a: std.mem.Allocator) void {
@@ -69,6 +68,8 @@ const BlogPostInfo = struct {
     name: []u8,
     uri_path: []u8,
     file_name: []u8,
+
+    /// Currently not actually used at all, could likely be removed
     content: []u8,
 
     fn getUriPath(name: []u8, allocator: std.mem.Allocator) ![]u8 {
@@ -126,29 +127,30 @@ const BlogPostInfo = struct {
     }
 };
 
+/// Just some optimization BS
+var default_blog_path: ?[]const u8 = null;
+inline fn getDefaultBlogPath() ![]const u8 {
+    if (default_blog_path) |p| return p;
+    try BlogDirectory.tryUpdate();
+    const all_posts = BlogDirectory.get().map;
+    var iter = all_posts.valueIterator();
+    var oldest_blog_post: ?*BlogPostInfo = null;
+    while (iter.next()) |n| {
+        if (oldest_blog_post) |p| {
+            if (n.last_modified < p.*.last_modified) oldest_blog_post = n;
+        } else oldest_blog_post = n;
+    }
+
+    default_blog_path = oldest_blog_post.?.uri_path;
+    return default_blog_path.?;
+}
+
 pub const BlogTemplate = zemplate.Template(CurrentBlogPage, @embedFile("blog.html"));
 /// returned blog page needs to be freed
-fn getBlogPage(allocator: std.mem.Allocator, query_opt: ?[]const u8) !?CurrentBlogPage {
+fn getBlogPage(allocator: std.mem.Allocator, postpath: []const u8) !?CurrentBlogPage {
     try BlogDirectory.tryUpdate();
     const all_posts = BlogDirectory.get().map;
 
-    const postpath: []const u8 = blk: {
-        if (query_opt) |query| {
-            log.debug("QUERY: {s}", .{query});
-            var split =
-                std.mem.splitBackwardsSequence(u8, query, "post=");
-            const first = split.first();
-            if (std.mem.containsAtLeast(u8, first, 1, "&")) {
-                var s = std.mem.splitScalar(u8, first, '&');
-                break :blk s.first();
-            }
-            break :blk first;
-        } else {
-            break :blk @constCast(&all_posts.valueIterator()).next().?.uri_path;
-        }
-    };
-
-    log.debug("GOT POSTNAME: {s}\n", .{postpath});
     const post = all_posts.get(std.hash_map.hashString(postpath));
 
     // This is a workaround for the fact that zemplate doesnt have control flow
@@ -166,9 +168,8 @@ fn getBlogPage(allocator: std.mem.Allocator, query_opt: ?[]const u8) !?CurrentBl
     }
 
     if (post == null) {
-        // BAD SHOULD NOT FOUND
         log.err("the name {s} does not have an associated post\n", .{postpath});
-        return null;
+        return error.NotFound;
     }
 
     log.debug(
@@ -184,7 +185,6 @@ fn getBlogPage(allocator: std.mem.Allocator, query_opt: ?[]const u8) !?CurrentBl
         .name = post.?.name,
         .filename = post.?.file_name,
         .last_modified = last_modified_string,
-        .content = post.?.content,
         .all_blogs = blogs_data,
     };
 }
@@ -192,13 +192,35 @@ fn getBlogPage(allocator: std.mem.Allocator, query_opt: ?[]const u8) !?CurrentBl
 /// This could be implemented as a stateless function, but this way the initialization of static blog data is enforced
 pub fn blogHandler(_: *StaticBlogData, a: std.mem.Allocator, r: Request, w: *std.Io.Writer) anyerror!void {
     const parts = http.parseRequestParts(&r);
-    const blog = getBlogPage(a, parts.query) catch |e| {
+
+    const postpath: []const u8 = blk: {
+        if (parts.query) |query| {
+            log.debug("QUERY: {s}", .{query});
+            var split =
+                std.mem.splitBackwardsSequence(u8, query, "post=");
+            const first = split.first();
+            if (std.mem.containsAtLeast(u8, first, 1, "&")) {
+                var s = std.mem.splitScalar(u8, first, '&');
+                break :blk s.first();
+            }
+            break :blk first;
+        } else {
+            break :blk try getDefaultBlogPath();
+        }
+    };
+
+    const blog = getBlogPage(a, postpath) catch |e| {
+        if (e == error.NotFound) return e;
+
         log.err("failed to get blog post: {any}\n", .{e});
         return;
     } orelse return error.NotFound;
     defer blog.deinit(a);
     if (parts.query == null) {
         const redirect = try std.fmt.allocPrint(a, "/Blog?post={s}", .{blog.path});
+        log.warn(
+            \\ Redirecting to {s}
+        , .{redirect});
 
         const extra_headers: []const std.http.Header =
             if (http.getHeader(r, "x-hydrated")) |v|

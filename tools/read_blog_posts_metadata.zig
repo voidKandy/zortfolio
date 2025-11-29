@@ -1,7 +1,7 @@
 const std = @import("std");
 const log = std.log.scoped(.BlogsMetadata);
 
-const BLOG_DIR = "blog";
+const BLOG_DIR = "serve/blog";
 const Metadata = struct {
     path: []const u8,
     last_modified: i64,

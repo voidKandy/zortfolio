@@ -13,3 +13,6 @@ As an excersize, I tried to minimize the uage of libraries not written by me, I 
 Templating was hand-rolled, see [zemplate](https://github.com/voidKandy/zemplate).
 
 Source code tour included on my [Blog](https://www.voidkandy.space/Blog)
+
+## Todo
+Create a way to associate 'data endpoints' rather than just 'html endpoints'. Basically routes that skip the writer system and won't be getting components oob swapped.

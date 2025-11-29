@@ -24,7 +24,7 @@
   class RenderedBlog extends HTMLElement {
     constructor() {
       super();
-      const template = document.getElementById('blog-renderer-template').content.cloneNode(true);
+      const template = document.getElementById('rendered-blog-template').content.cloneNode(true);
       this.attachShadow({mode: 'open'}).appendChild(template);
     }
 

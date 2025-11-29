@@ -121,7 +121,7 @@ pub fn CachedDirectory(comptime ItemType: type, dir_path: []const u8) type {
         }
 
         pub fn get() @This() {
-            return singleton.?;
+            return singleton orelse @panic("Tried to access unitialized ComponentsDirectory");
         }
 
         pub fn tryUpdate() !void {

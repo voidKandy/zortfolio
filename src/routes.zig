@@ -5,7 +5,7 @@ const ArrayList = std.ArrayList;
 const log = std.log.scoped(.routes);
 const Request = std.http.Server.Request;
 
-pub const Home = struct { about: []const u8 = @embedFile("about.md") };
+pub const Home = struct {};
 pub const HomeTemplate = zemplate.Template(Home, @embedFile("home.html"));
 pub fn homeHandler(ctx: *HomeTemplate, a: std.mem.Allocator, r: Request, w: *std.Io.Writer) anyerror!void {
     _ = r;
