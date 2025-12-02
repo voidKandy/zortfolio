@@ -145,7 +145,6 @@ inline fn getDefaultBlogPath() ![]const u8 {
     return default_blog_path.?;
 }
 
-pub const BlogTemplate = zemplate.Template(CurrentBlogPage, @embedFile("blog.html"));
 /// returned blog page needs to be freed
 fn getBlogPage(allocator: std.mem.Allocator, postpath: []const u8) !?CurrentBlogPage {
     try BlogDirectory.tryUpdate();
@@ -237,10 +236,8 @@ pub fn blogHandler(_: *StaticBlogData, a: std.mem.Allocator, r: Request, w: *std
         });
         return;
     }
-    var template = BlogTemplate.init(blog);
-    const body = template.render(a, .{}) catch |err| {
+    const body = zemplate.template.render(a, blog, @embedFile("blog.html"), .{}) catch |err| {
         std.debug.panic("Failed to render template: {}", .{err});
     };
-    defer a.free(body);
     try w.writeAll(body);
 }
