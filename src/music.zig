@@ -164,16 +164,9 @@ pub const MusicInfo = struct {
     }
 };
 
-pub const MusicTemplate = zemplate.Template(MusicInfo, @embedFile("music.html"));
-pub fn musicHandler(ctx: *MusicTemplate, a: std.mem.Allocator, r: Request, w: *std.Io.Writer) anyerror!void {
-    _ = r;
-    const body = ctx.render(a, .{}) catch |err| {
-        std.debug.panic("Failed to render template: {any}", .{err});
-    };
-    log.debug("body: {s}\n", .{body});
-    defer a.free(body);
-
-    try w.writeAll(body);
+pub fn musicHandler(ctx: *MusicInfo, a: std.mem.Allocator, _: Request, w: *std.Io.Writer) anyerror!void {
+    const render = try zemplate.template.render(a, ctx, @embedFile("music.html"), .{});
+    try w.writeAll(render);
 }
 
 const Encoder = std.base64.standard.Encoder;

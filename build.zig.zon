@@ -24,17 +24,17 @@
     // Once all dependencies are fetched, `zig build` no longer requires
     // internet connectivity.
     .dependencies = .{
-        .tls = .{
-            .url = "git+https://github.com/ianic/tls.zig#9d56751c99267075908c63a8a91ffc1e7f252df4",
-            .hash = "tls-0.1.0-ER2e0gNoBQBLuvbg_hPuGQYoCVsn-kHDuupr0hsapu4P",
-        },
-        .mime = .{
-            .url = "git+https://github.com/andrewrk/mime#4535b74bd5fcaa03e22f2f25af164a4c6253af00",
-            .hash = "mime-4.0.0-zwmL--0gAACndOVlROQeDnM0chfojNDS8tpohlsBqMNy",
-        },
         .zemplate = .{
-            .url = "git+https://github.com/voidKandy/zemplate#f6b2d322a7701ce0c028262947010fd7e93609cc",
-            .hash = "zemplate-1.0.0-tSKpW9U_AABuhNKlEgfBCErWtNvAigXFO8M64qLBXfZ-",
+            .url = "git+https://github.com/voidKandy/zemplate#3526ab546e737d623b40e3780384bda893381c01",
+            .hash = "zemplate-1.2.0-tSKpW6MxAABrhR1HlRWvXCgTLewc7apdpm06AW9Pw9QM",
+        },
+        .btzdotenv = .{
+            .url = "git+https://github.com/voidKandy/btzdotenv#e23c9ca7d6b2aa783110d7113100a2965a2028e1",
+            .hash = "btzdotenv-1.0.0-AAAAAD4IAABFkToVB49U2ySUr62bpfuGelN8lo2fG11H",
+        },
+        .zyph = .{
+            .url = "git+https://github.com/voidKandy/zyph#0d0060875deaab5a9f392d4468fd6ba3df8a124b",
+            .hash = "zyph-0.1.1-z6Sw_cqdAAAf7wkLSW2qyVykTEbK3-dmcZIiOrjOufOK",
         },
     },
     .paths = .{

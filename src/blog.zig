@@ -1,10 +1,9 @@
 const std = @import("std");
 const zemplate = @import("zemplate");
-const http = @import("http.zig");
+const zyph = @import("zyph");
 const ArrayList = std.ArrayList;
 const Request = std.http.Server.Request;
-const cache = @import("cache.zig");
-const BlogDirectory = cache.CachedDirectory(BlogPostInfo, "serve/blog");
+const BlogDirectory = zyph.cache.CachedDirectory(BlogPostInfo, "serve/blog");
 const log = std.log.scoped(.blog);
 
 const BlogMetadata = struct {
@@ -145,7 +144,6 @@ inline fn getDefaultBlogPath() ![]const u8 {
     return default_blog_path.?;
 }
 
-pub const BlogTemplate = zemplate.Template(CurrentBlogPage, @embedFile("blog.html"));
 /// returned blog page needs to be freed
 fn getBlogPage(allocator: std.mem.Allocator, postpath: []const u8) !?CurrentBlogPage {
     try BlogDirectory.tryUpdate();
@@ -191,7 +189,7 @@ fn getBlogPage(allocator: std.mem.Allocator, postpath: []const u8) !?CurrentBlog
 
 /// This could be implemented as a stateless function, but this way the initialization of static blog data is enforced
 pub fn blogHandler(_: *StaticBlogData, a: std.mem.Allocator, r: Request, w: *std.Io.Writer) anyerror!void {
-    const parts = http.parseRequestParts(&r);
+    const parts = zyph.parseRequestParts(&r);
 
     const postpath: []const u8 = blk: {
         if (parts.query) |query| {
@@ -223,7 +221,7 @@ pub fn blogHandler(_: *StaticBlogData, a: std.mem.Allocator, r: Request, w: *std
         , .{redirect});
 
         const extra_headers: []const std.http.Header =
-            if (http.getHeader(r, "x-hydrated")) |v|
+            if (zyph.getHeader(r, "x-hydrated")) |v|
                 &.{ .{ .name = "Location", .value = redirect }, .{ .name = "x-hydrated", .value = v } }
             else
                 &.{
@@ -237,10 +235,8 @@ pub fn blogHandler(_: *StaticBlogData, a: std.mem.Allocator, r: Request, w: *std
         });
         return;
     }
-    var template = BlogTemplate.init(blog);
-    const body = template.render(a, .{}) catch |err| {
+    const body = zemplate.template.render(a, blog, @embedFile("blog.html"), .{}) catch |err| {
         std.debug.panic("Failed to render template: {}", .{err});
     };
-    defer a.free(body);
     try w.writeAll(body);
 }
