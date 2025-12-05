@@ -25,19 +25,34 @@ const AlbumItem = struct {
     node: std.DoublyLinkedList.Node,
 };
 
+const TemplateAlbumItem = struct {
+    name: []u8,
+    release_date: []u8,
+    image_url: []u8,
+    spotify_url: []u8,
+};
+
 pub const SortedAlbumList = struct {
-    // const AlbumList = std.DoublyLinkedList(AlbumItem);
     const Self = @This();
-    // first_album: ?*AlbumItem = null,
-    // len: usize = 0,
-    // allocator: std.mem.Allocator,
     list: std.DoublyLinkedList = .{},
 
-    // fn init(allocator: std.mem.Allocator) Self {
-    //     return Self{
-    //         .allocator = allocator,
-    //     };
-    // }
+    fn toArray(self: *Self, a: std.mem.Allocator) std.mem.Allocator.Error![]TemplateAlbumItem {
+        const size = self.list.len();
+
+        var arr = try a.alloc(TemplateAlbumItem, size);
+        var i: usize = 0;
+        while (self.list.pop()) |n| : (i += 1) {
+            const item: *AlbumItem = @fieldParentPtr("node", n);
+            arr[i] = TemplateAlbumItem{
+                .image_url = item.item.images[0].url,
+                .name = item.item.name,
+                .release_date = item.item.release_date,
+                .spotify_url = item.item.external_urls.spotify,
+            };
+        }
+
+        return arr;
+    }
 
     /// first node should be the earliest album in the list
     /// converts AlbumResponse object into AlbumItem object
@@ -62,7 +77,10 @@ pub const SortedAlbumList = struct {
         var current = self.list.first;
         while (current) |curr| {
             const current_album = @as(*AlbumItem, @fieldParentPtr("node", curr));
-            if (earlierThan(album.*, current_album.*) orelse false) {
+            if (earlierThan(
+                current_album.*,
+                album.*,
+            ) orelse true) {
                 self.list.insertBefore(curr, &album.node);
                 return;
             }
@@ -96,9 +114,7 @@ pub const SortedAlbumList = struct {
 };
 
 pub const MusicInfo = struct {
-    albums_html: std.ArrayList(u8),
-
-    const MusicComponentElementName = "music-display";
+    all_albums: []TemplateAlbumItem,
 
     pub fn build(allocator: std.mem.Allocator) !MusicInfo {
         var builder = try MusicInfoBuilder.init(allocator);
@@ -123,49 +139,22 @@ pub const MusicInfo = struct {
             try builder.getAlbumsRest(uri, token.value, &all_albums_sorted);
         }
 
-        const albums_html = try renderAlbumsHTML(allocator, &all_albums_sorted);
+        // const albums_html = try renderAlbumsHTML(allocator, &all_albums_sorted);
+        const all_albums = try all_albums_sorted.toArray(allocator);
 
         log.debug("should return music info", .{});
-        return MusicInfo{ .albums_html = albums_html };
+        return MusicInfo{ .all_albums = all_albums };
     }
 
     pub fn deinit(self: *@This(), a: std.mem.Allocator) void {
-        self.albums_html.deinit(a);
-    }
-
-    fn renderAlbumsHTML(allocator: std.mem.Allocator, all_albums: *SortedAlbumList) !std.ArrayList(u8) {
-        var buffer = try std.ArrayList(u8).initCapacity(allocator, 1024 * 1024);
-        var current: ?*AlbumItem = @fieldParentPtr("node", all_albums.list.first orelse return buffer);
-
-        while (current) |album| {
-            defer allocator.destroy(album);
-            const album_str = try std.fmt.allocPrint(allocator,
-                \\
-                \\<{s} name="{s}" image="{s}" release="{s}" spotify_url="{s}" >
-                \\</{s}>
-                \\
-            , .{
-                MusicComponentElementName,
-                album.item.name,
-                album.item.images[0].url,
-                album.item.release_date,
-                album.item.external_urls.spotify,
-                MusicComponentElementName,
-            });
-
-            try buffer.appendSlice(allocator, album_str);
-
-            current = if (album.node.next) |n|
-                @as(*AlbumItem, @fieldParentPtr("node", n))
-            else
-                null;
-        }
-        return buffer;
+        a.free(self.all_albums);
     }
 };
 
+const Template = zemplate.Template(MusicInfo);
 pub fn musicHandler(ctx: *MusicInfo, a: std.mem.Allocator, _: Request, w: *std.Io.Writer) anyerror!void {
-    const render = try zemplate.template.render(a, ctx, @embedFile("music.html"), .{});
+    var t = Template.init(ctx.*);
+    const render = try t.render(a, @embedFile("music.html"), .{});
     try w.writeAll(render);
 }
 
