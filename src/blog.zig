@@ -187,7 +187,8 @@ fn getBlogPage(allocator: std.mem.Allocator, postpath: []const u8) !?CurrentBlog
     };
 }
 
-/// This could be implemented as a stateless function, but this way the initialization of static blog data is enforced
+const Template = zemplate.Template(CurrentBlogPage);
+
 pub fn blogHandler(_: *StaticBlogData, a: std.mem.Allocator, r: Request, w: *std.Io.Writer) anyerror!void {
     const parts = zyph.parseRequestParts(&r);
 
@@ -235,7 +236,8 @@ pub fn blogHandler(_: *StaticBlogData, a: std.mem.Allocator, r: Request, w: *std
         });
         return;
     }
-    const body = zemplate.template.render(a, blog, @embedFile("blog.html"), .{}) catch |err| {
+    var t = Template.init(blog);
+    const body = t.render(a, @embedFile("blog.html"), .{}) catch |err| {
         std.debug.panic("Failed to render template: {}", .{err});
     };
     try w.writeAll(body);

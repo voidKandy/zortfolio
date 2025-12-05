@@ -25,7 +25,10 @@
     </a>
   </h1>
   <div class="music-container">
-    ||zz .albums_html zz||
+    ||zz for .all_albums zz||
+    <music-display name="{{.name}}" image="{{.image_url}}" release="{{.release_date}}" spotify_url="{{.spotify_url}}">
+    </music-display>
+    ||zz endfor zz||
 
   </div>
 </div>

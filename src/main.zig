@@ -11,6 +11,7 @@ pub const std_options = std.Options{
     .log_level = .warn,
 };
 
+const EmptyTemplate = zemplate.Template(@TypeOf(.{}));
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{
         .thread_safe = true,
@@ -29,19 +30,20 @@ pub fn main() !void {
 
     try server.routes.registerHypermediaEndpoint("/", &.{}, &struct {
         fn handler(obj: *@TypeOf(.{}), a: std.mem.Allocator, _: Request, w: *std.Io.Writer) anyerror!void {
-            std.log.debug(
-                \\ Rendering home: {any}
-            , .{obj});
-            const render = try zemplate.template.render(a, obj, @embedFile("home.html"), .{});
+            var t = EmptyTemplate.init(obj.*);
+            const render = try t.render(a, @embedFile("home.html"), .{});
             try w.writeAll(render);
         }
     }.handler);
+
     try server.routes.registerHypermediaEndpoint("/Info", &.{}, &struct {
         fn handler(obj: *@TypeOf(.{}), a: std.mem.Allocator, _: Request, w: *std.Io.Writer) anyerror!void {
-            const render = try zemplate.template.render(a, obj, @embedFile("info.html"), .{});
+            var t = EmptyTemplate.init(obj.*);
+            const render = try t.render(a, @embedFile("info.html"), .{});
             try w.writeAll(render);
         }
     }.handler);
+
     try server.routes.registerHypermediaEndpoint("/Music", &music_info, &music.musicHandler);
     try server.routes.registerHypermediaEndpoint("/Blog", &blg_dat, &blog.blogHandler);
 
