@@ -6,6 +6,44 @@
       gap: 1rem;
 
     }
+
+    @keyframes fade-in {
+      from {
+        opacity: 0;
+      }
+    }
+
+    @keyframes fade-out {
+      to {
+        opacity: 0;
+      }
+    }
+
+    @keyframes slide-from-right {
+      from {
+        transform: translateX(90px);
+      }
+    }
+
+    @keyframes slide-to-left {
+      to {
+        transform: translateX(-90px);
+      }
+    }
+
+    ::view-transition-old(slide-it) {
+      animation: 180ms cubic-bezier(0.4, 0, 1, 1) both fade-out,
+        600ms cubic-bezier(0.4, 0, 0.2, 1) both slide-to-left;
+    }
+
+    ::view-transition-new(slide-it) {
+      animation: 420ms cubic-bezier(0, 0, 0.2, 1) 90ms both fade-in,
+        600ms cubic-bezier(0.4, 0, 0.2, 1) both slide-from-right;
+    }
+
+    .slide-transition {
+      view-transition-name: slide-it;
+    }
   </style>
 
   <div id="routes-container"></div>
@@ -27,6 +65,8 @@
         return;
       }
 
+      const routeContentContainer = document.querySelector('#route-content');
+      routeContentContainer.classList.add("slide-transition");
       this.routesContainer = this.querySelector('#routes-container');
       this.routeButtonMap = new Map();
 
@@ -38,17 +78,15 @@
 
         if (route === this.defaultRoute) {
           button.setAttribute("hx-get", `/`);
-/*        } else if (route === this.currentPath && this.currentQuery) {
-          button.setAttribute("hx-get", `/${route}?${this.currentQuery}`);
-*/        } else {
-          button.setAttribute("hx-get", `/${route}`);
+        } else {
+          button.setAttribute("hx-get", `/${route} `);
         }
         button.setAttribute("hx-target", this.target);
-        button.setAttribute("hx-swap", this.swap);
+        button.setAttribute("hx-swap", `${this.swap} transition:true`);
         button.setAttribute("hx-push-url", "true");
 
-        button.addEventListener("htmx:xhr:loadend", () => {
-          this.updateButtonStyles();
+        button.addEventListener("htmx:xhr:loadend", (evt) => {
+          this.setButtonSelected(evt.detail.elt.id);
         });
 
         this.routeButtonMap.set(route, button);
@@ -56,28 +94,45 @@
       });
 
       document.addEventListener('DOMContentLoaded', () => {
-        this.updateButtonStyles();
+        const path = window.location.pathname.replace(/^\/+/, '');
+        let selectedButtonId = null;
+
+        for (const [route, button] of this.routeButtonMap.entries()) {
+          const isHome = path === '' && route === this.defaultRoute;
+          const isMatch = path !== '' && route === path;
+
+          if (isHome || isMatch) {
+            selectedButtonId = button.id;
+            break;
+          }
+        }
+
+        if (selectedButtonId) {
+          this.setButtonSelected(selectedButtonId);
+        }
       })
 
     }
 
-    updateButtonStyles() {
+    /**
+     * Updates the route buttons to mark one as selected and clear the rest.
+     *
+     * @param {string} selectedButtonId - The `id` of the button to mark as selected.
+     */
+    setButtonSelected(selectedButtonId) {
       const selected_marker = "* ";
-      const path = window.location.pathname.replace(/^\/+/, '');
 
-      for (const button of this.routeButtonMap.values()) {
-        const isHome = path === '' && button.textContent.includes(this.defaultRoute);
-        const isMatch = path !== '' && button.textContent.includes(path);
-
-        if (isHome || isMatch) {
+      for (const [route, button] of this.routeButtonMap.entries()) {
+        if (button.id === selectedButtonId) {
           if (!button.textContent.startsWith(selected_marker)) {
-            button.textContent = `${selected_marker}${button.textContent}`;
+            button.textContent = `${selected_marker}${route}`;
           }
         } else {
           button.textContent = button.textContent.replace(selected_marker, "");
         }
       }
     }
+
 
 
 

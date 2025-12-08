@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,100..900;1,100..900&family=Kode+Mono:wght@400..700&display=swap');
+
 :root {
   color-scheme: light dark;
   /* --flicker-speed: .001s; */
@@ -31,7 +33,7 @@
 
 
 body {
-  font-family: Andale Mono, monospace;
+  font-family: "Jost", sans-serif;
   background-color: light-dark(var(--light-bg), var(--dark-bg));
   color: light-dark(var(--light-color), var(--dark-color));
   margin: 0;
@@ -89,9 +91,9 @@ body.dark button {
 }
 
 body.dark button:hover {
-  box-shadow: 2px 2px var(--dark-border);
-  text-shadow:
-    1px 1px 0 var(--light-color);
+  box-shadow: 0.5px 0.5px var(--dark-border);
+  /* text-shadow: */
+  /* 1px 1px 0 var(--light-color); */
 }
 
 body:not(.dark) button {
@@ -99,21 +101,17 @@ body:not(.dark) button {
 }
 
 body:not(.dark) button:hover {
-  box-shadow: 2px 2px var(--light-border);
-  text-shadow:
-    1px 1px 0 var(--dark-color);
+  box-shadow: 0.5px 0.5px var(--light-border);
+  /* text-shadow: */
+  /* 1px 1px 0 var(--dark-color); */
 }
 
 nav-router button {
   color: var(--offblack);
 }
 
-nav-router button:hover {
-  text-shadow:
-    1px 1px 0 var(--dark-color);
-}
-
 button {
+  font-family: "Jost", sans-serif;
   font-weight: bold;
   border-style: solid;
   border-width: 2px;
