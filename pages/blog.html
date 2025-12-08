@@ -8,7 +8,10 @@
   }
 
   #rendered-blog {
+    box-sizing: border-box;
     padding: 1rem;
+    flex: 1 1 auto;
+    min-width: 0;
     background-color: light-dark(var(--offwhite), var(--offblack));
     border-color: light-dark(var(--offblack), var(--offwhite));
     border-left: 1px dotted;
@@ -49,7 +52,7 @@
     line-height: 1.4;
   }
 
-  md-block p code {
+  md-block code {
     padding: 1.5px;
     border-radius: 3px;
     background-color: light-dark(var(--light-color), var(--dark-color));
