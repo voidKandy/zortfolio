@@ -20,7 +20,7 @@ pub fn main() !void {
 
     const allocator = gpa.allocator();
     const cwd = std.fs.cwd();
-    var server = zyph.Server.init(allocator, try cwd.openDir("pages", .{}), try cwd.openDir("serve", .{ .iterate = true }));
+    var server = zyph.Server.init(allocator, try cwd.openFile("pages/index.html", .{}), try cwd.openDir("serve", .{ .iterate = true }));
     defer server.deinit();
 
     var music_info = try music.MusicInfo.build(allocator);
