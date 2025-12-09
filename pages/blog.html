@@ -53,11 +53,10 @@
   }
 
   md-block code {
-    padding: 1.5px;
+    padding: 2.5px;
     border-radius: 3px;
     background-color: light-dark(var(--light-color), var(--dark-color));
     color: light-dark(var(--dark-color), var(--light-color));
-    filter: contrast(50%) sepia(10%);
   }
 
   md-block pre {
@@ -88,6 +87,74 @@
   }
 
 
+  #navigation {
+    display: flex;
+    flex-direction: column;
+    width: max-content;
+    border: 1.5px solid light-dark(var(--light-border), var(--dark-border)) !important;
+  }
+
+  #navigation button {
+    padding: 1rem;
+    flex-grow: 1;
+    display: flex;
+    border: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    transition: all ease-in 250ms;
+  }
+
+  #navigation button:not(:last-child) {
+    border-bottom: 2px solid light-dark(var(--light-border), var(--dark-border)) !important;
+  }
+
+  #navigation button:hover,
+  #navigation button.selected {
+    background-color: var(--primary-orange);
+    color: var(--light-color);
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes slide-from-right {
+    from {
+      transform: translateX(90px);
+    }
+  }
+
+  @keyframes slide-to-left {
+    to {
+      transform: translateX(-90px);
+    }
+  }
+
+  /* define animations for the old and new content */
+  ::view-transition-old(slide-it) {
+    animation: 180ms cubic-bezier(0.4, 0, 1, 1) both fade-out,
+      600ms cubic-bezier(0.4, 0, 0.2, 1) both slide-to-left;
+  }
+
+  ::view-transition-new(slide-it) {
+    animation: 420ms cubic-bezier(0, 0, 0.2, 1) 90ms both fade-in,
+      600ms cubic-bezier(0.4, 0, 0.2, 1) both slide-from-right;
+  }
+
+  /* tie the view transition to a given CSS class */
+  .sample-transition {
+    view-transition-name: slide-it;
+  }
+
+
   @media (max-width: 930px) {
     #blog-page {
       flex-direction: column;
@@ -107,50 +174,113 @@
       border-radius: 2px;
     }
 
+    #navigation {
+      width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+      flex-direction: row;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #navigation button {
+      flex: 0 0 auto;
+      border-bottom: 2px solid light-dark(var(--light-border), var(--dark-border)) !important;
+    }
+
+    #navigation button:not(:last-child) {
+      border-right: 1px solid light-dark(var(--light-border), var(--dark-border)) !important;
+
+    }
+
+
   }
 </style>
+
+
 <div id="blog-page">
-  <script type="application/json" id="all-blogs-json">
-    ||zz .all_blogs json zz||
-  </script>
-  <blog-selector-list target="#rendered-blog">
-  </blog-selector-list>
-  <div id="rendered-blog">
-    <script>
-      function renderLastModified() {
-        const last_modified = document.getElementById("last-modified");
-        if (last_modified) {
-          try {
-            const raw = "||zz .last_modified zz||";
-            if (raw && /^\d+$/.test(raw)) {
-              const nanos = BigInt(raw);
-              const millisBigInt = nanos / 1_000_000n;
-              const millis = Number(millisBigInt);
-              const pstString = new Date(millis).toLocaleString("en-US", {
-                timeZone: "America/Los_Angeles",
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-                hour: "numeric",
-                minute: "numeric",
-                second: "numeric",
-                hour12: true,
-                timeZoneName: "short"
-              });
-              last_modified.textContent = pstString;
-            } else {
-              last_modified.textContent = "Unknown date";
-            }
-          } catch (err) {
-            console.error("Error converting date:", err);
-          }
+  <script>
+
+    /**
+     * Updates the route buttons to mark one as selected and clear the rest.
+     *
+     * @param {string} selectedButtonId - The `id` of the button to mark as selected.
+     */
+    function setButtonSelected(selectedButtonId) {
+      const navigation = document.getElementById("navigation");
+      for (const button of navigation.children) {
+        if (button.id === selectedButtonId) {
+          button.classList.add("selected");
+        } else {
+          button.classList.remove("selected");
         }
       }
-      renderLastModified();
+    }
+
+    document.getElementById("blog-page").addEventListener('htmx:beforeProcessNode', () => {
+      const navigation = document.getElementById("navigation");
+      const query = window.location.search;
+      const blog_name = query.split("=")[1];
+      const id = `${blog_name}-selector`
+      setButtonSelected(id);
+    });
+
+    /**
+       * Updates the route buttons to mark one as selected and clear the rest.
+       *
+       * @param {string} lastModifiedString - The last modified in nanoseconds, as a string
+       */
+    function renderLastModified(lastModifiedString) {
+      const last_modified = document.getElementById("last-modified");
+      if (last_modified) {
+        try {
+          if (lastModifiedString && /^\d+$/.test(lastModifiedString)) {
+            const nanos = BigInt(lastModifiedString);
+            const millisBigInt = nanos / 1_000_000n;
+            const millis = Number(millisBigInt);
+            const pstString = new Date(millis).toLocaleString("en-US", {
+              timeZone: "America/Los_Angeles",
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              second: "numeric",
+              hour12: true,
+              timeZoneName: "short"
+            });
+            last_modified.textContent = pstString;
+          } else {
+            last_modified.textContent = "Unknown date";
+          }
+        } catch (err) {
+          console.error("Error converting date:", err);
+        }
+      }
+    }
+  </script>
+
+  <div>
+    <section id="navigation">
+      ||zz for .all_blogs zz||
+      <button hx-preserve class="crt" hx-on::xhr:loadend="setButtonSelected(event.detail.elt.id);"
+        id="{{.uri_path}}-selector" hx-get="/Blog?post={{.uri_path}}" hx-target="#rendered-blog"
+        hx-select="#rendered-blog" hx-swap="outerHTML transition:true" hx-push-url="true">
+        {{.name}}
+      </button>
+      ||zz endfor zz||
+    </section>
+  </div>
+  <div id="rendered-blog">
+    <script>
+
+
+      renderLastModified("||zz .last_modified zz||");
       document.addEventListener('DOMContentLoaded', () => {
-        renderLastModified();
+        renderLastModified("||zz .last_modified zz||");
       })
+
     </script>
     <header>
       <small>

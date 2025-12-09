@@ -66,7 +66,8 @@
       }
 
       const routeContentContainer = document.querySelector('#route-content');
-      routeContentContainer.classList.add("slide-transition");
+      // cant use because nested transitions don't work
+      // routeContentContainer.classList.add("slide-transition"); 
       this.routesContainer = this.querySelector('#routes-container');
       this.routeButtonMap = new Map();
 

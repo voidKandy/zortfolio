@@ -164,7 +164,11 @@ fn getBlogPage(allocator: std.mem.Allocator, postpath: []const u8) !?CurrentBlog
             .uri_path = p.uri_path,
         };
     }
-
+    std.mem.sort(ClientsideBlogData, blogs_data, .{}, struct {
+        fn lt(_: @TypeOf(.{}), this: ClientsideBlogData, other: ClientsideBlogData) bool {
+            return (this.last_modified > other.last_modified);
+        }
+    }.lt);
     if (post == null) {
         log.err("the name {s} does not have an associated post\n", .{postpath});
         return error.NotFound;
