@@ -2,7 +2,6 @@
     .name = .zortfolio,
     .fingerprint = 0x3cc39afcb1d786fa,
 
-    // This is a [Semantic Version](https://semver.org/).
     .version = "1.0.0",
 
     .dependencies = .{
@@ -15,8 +14,9 @@
             .hash = "btzdotenv-1.0.0-AAAAAD4IAABFkToVB49U2ySUr62bpfuGelN8lo2fG11H",
         },
         .zyph = .{
-            .url = "git+https://github.com/voidKandy/zyph#8e5d150a6ae798f1dee360e95d741babcfd69d8c",
-            .hash = "zyph-0.1.4-z6Sw_UqjAADgfUvYijJKwENkM-4dypaqtHtrqK4AZqwf",
+            // .url = "git+https://github.com/voidKandy/zyph#8e5d150a6ae798f1dee360e95d741babcfd69d8c",
+            // .hash = "zyph-0.1.4-z6Sw_UqjAADgfUvYijJKwENkM-4dypaqtHtrqK4AZqwf",
+            .path = "../zyph",
         },
     },
     .paths = .{

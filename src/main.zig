@@ -20,32 +20,43 @@ pub fn main() !void {
 
     const allocator = gpa.allocator();
     const cwd = std.fs.cwd();
-    var server = zyph.Server.init(allocator, try cwd.openFile("pages/index.html", .{}), try cwd.openDir("serve", .{ .iterate = true }));
+    var server = zyph.Server.init(allocator, try cwd.openDir("serve", .{ .iterate = true }));
     defer server.deinit();
+
+    var hydration_context = try zyph.hydration_middleware.Context.init(allocator, try std.fs.cwd().openFile("pages/index.html", .{}));
+    defer hydration_context.deinit(allocator);
+    try server.middlewares.put(
+        zyph.hydration_middleware.NAME,
+        zyph.Middleware.init(.post, &hydration_context, &zyph.hydration_middleware.handler),
+    );
 
     var music_info = try music.MusicInfo.build(allocator);
     defer music_info.deinit(allocator);
     var blg_dat = try blog.StaticBlogData.init(allocator);
     defer blg_dat.deinit();
 
-    try server.routes.registerHypermediaEndpoint("/", &.{}, &struct {
-        fn handler(obj: *@TypeOf(.{}), a: std.mem.Allocator, _: Request, w: *std.Io.Writer) anyerror!void {
-            var t = EmptyTemplate.init(obj.*);
-            const render = try t.render(a, @embedFile("home.html"), .{});
-            try w.writeAll(render);
-        }
-    }.handler);
+    for (&[_]zyph.Server.RouteHandler{
+        try server.registerHypermediaEndpoint("/", &.{}, &struct {
+            fn handler(obj: *@TypeOf(.{}), a: std.mem.Allocator, _: Request, w: *std.Io.Writer) anyerror!void {
+                var t = EmptyTemplate.init(obj.*);
+                const render = try t.render(a, @embedFile("home.html"), .{});
+                try w.writeAll(render);
+            }
+        }.handler),
 
-    try server.routes.registerHypermediaEndpoint("/Info", &.{}, &struct {
-        fn handler(obj: *@TypeOf(.{}), a: std.mem.Allocator, _: Request, w: *std.Io.Writer) anyerror!void {
-            var t = EmptyTemplate.init(obj.*);
-            const render = try t.render(a, @embedFile("info.html"), .{});
-            try w.writeAll(render);
-        }
-    }.handler);
+        try server.registerHypermediaEndpoint("/Info", &.{}, &struct {
+            fn handler(obj: *@TypeOf(.{}), a: std.mem.Allocator, _: Request, w: *std.Io.Writer) anyerror!void {
+                var t = EmptyTemplate.init(obj.*);
+                const render = try t.render(a, @embedFile("info.html"), .{});
+                try w.writeAll(render);
+            }
+        }.handler),
 
-    try server.routes.registerHypermediaEndpoint("/Music", &music_info, &music.musicHandler);
-    try server.routes.registerHypermediaEndpoint("/Blog", &blg_dat, &blog.blogHandler);
+        try server.registerHypermediaEndpoint("/Music", &music_info, &music.musicHandler),
+        try server.registerHypermediaEndpoint("/Blog", &blg_dat, &blog.blogHandler),
+    }) |route_handler| {
+        try route_handler.addMiddlewares(.post, &.{zyph.hydration_middleware.NAME});
+    }
 
     var env_map = try std.process.getEnvMap(allocator);
     defer env_map.deinit();

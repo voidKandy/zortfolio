@@ -238,8 +238,9 @@ pub fn blogHandler(_: *StaticBlogData, a: std.mem.Allocator, r: Request, w: *std
             .status = .found,
             .extra_headers = extra_headers,
         });
-        return;
+        return error.Redirect;
     }
+
     var t = Template.init(blog);
     const body = t.render(a, @embedFile("blog.html"), .{}) catch |err| {
         std.debug.panic("Failed to render template: {}", .{err});

@@ -1,5 +1,6 @@
 const std = @import("std");
 const zemplate = @import("zemplate");
+const zyph = @import("zyph");
 const dotenv = @import("dotenv");
 const print = std.debug.print;
 const log = std.log.scoped(.music);
