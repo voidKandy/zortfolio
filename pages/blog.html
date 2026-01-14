@@ -264,10 +264,10 @@
   <div>
     <section id="navigation">
       ||zz for .all_blogs zz||
-      <button hx-preserve class="crt" hx-on::xhr:loadend="setButtonSelected(event.detail.elt.id);"
-        id="{{.uri_path}}-selector" hx-get="/Blog?post={{.uri_path}}" hx-target="#rendered-blog"
-        hx-select="#rendered-blog" hx-swap="outerHTML transition:true" hx-push-url="true">
-        {{.name}}
+      <button class="crt" hx-on::xhr:loadend="setButtonSelected(event.detail.elt.id);" id="{|.uri_path|}-selector"
+        hx-get="/Blog?post={|.uri_path|}" hx-target="#rendered-blog" hx-select="#rendered-blog"
+        hx-swap="outerHTML transition:true" hx-push-url="true">
+        {|.name|}
       </button>
       ||zz endfor zz||
     </section>
@@ -276,19 +276,19 @@
     <script>
 
 
-      renderLastModified("||zz .last_modified zz||");
+      renderLastModified("{|.last_modified|}");
       document.addEventListener('DOMContentLoaded', () => {
-        renderLastModified("||zz .last_modified zz||");
+        renderLastModified("{|.last_modified|}");
       })
 
     </script>
     <header>
       <small>
-        ||zz .filename zz||
+        {|.filename|}
       </small>
       <p id="last-modified"></p>
     </header>
-    <md-block src="blog/||zz .filename zz||">
+    <md-block src="blog/{|.filename|}">
     </md-block>
   </div>
 </div>

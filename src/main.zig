@@ -11,7 +11,6 @@ pub const std_options = std.Options{
     .log_level = .warn,
 };
 
-const EmptyTemplate = zemplate.Template(@TypeOf(.{}));
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{
         .thread_safe = true,
@@ -38,16 +37,18 @@ pub fn main() !void {
     for (&[_]zyph.Server.RouteHandler{
         try server.registerHypermediaEndpoint("/", &.{}, &struct {
             fn handler(obj: *@TypeOf(.{}), a: std.mem.Allocator, _: Request, w: *std.Io.Writer) anyerror!void {
-                var t = EmptyTemplate.init(obj.*);
-                const render = try t.render(a, @embedFile("home.html"), .{});
+                var t = try zemplate.Template.init(a, obj);
+                defer t.deinit();
+                const render = try t.render(@embedFile("home.html"), .{});
                 try w.writeAll(render);
             }
         }.handler),
 
         try server.registerHypermediaEndpoint("/Info", &.{}, &struct {
             fn handler(obj: *@TypeOf(.{}), a: std.mem.Allocator, _: Request, w: *std.Io.Writer) anyerror!void {
-                var t = EmptyTemplate.init(obj.*);
-                const render = try t.render(a, @embedFile("info.html"), .{});
+                var t = try zemplate.Template.init(a, obj);
+                defer t.deinit();
+                const render = try t.render(@embedFile("info.html"), .{});
                 try w.writeAll(render);
             }
         }.handler),
