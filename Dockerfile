@@ -18,7 +18,7 @@ WORKDIR /zortfolio
 COPY . .
 
 # Build the project
-RUN zig build -Drelease-mode=DebugSafe
+RUN zig build -Doptimize=Debug
 
 # Default command
 CMD ["./zig-out/bin/zortfolio"]
