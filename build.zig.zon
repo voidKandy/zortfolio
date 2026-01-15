@@ -6,7 +6,7 @@
 
     .dependencies = .{
         .zemplate = .{
-            .url = "git+https://github.com/voidKandy/zemplate#b5656bbf663194d27ca889bc25c872ce0b2ddb91",
+            .url = "git+https://github.com/voidKandy/zemplate?ref=staging#b5656bbf663194d27ca889bc25c872ce0b2ddb91",
             .hash = "zemplate-1.4.2-tSKpW6UeAQChbp63XD9BQOmAt0JOOOqxp9-edAueByjh",
         },
         .btzdotenv = .{
