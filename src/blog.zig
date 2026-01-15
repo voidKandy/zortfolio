@@ -239,9 +239,9 @@ pub fn blogHandler(_: *StaticBlogData, a: std.mem.Allocator, r: Request, w: *std
         return error.Redirect;
     }
 
-    var t = try zemplate.Template.init(
+    var t = try zemplate.Template(CurrentBlogPage).init(
         a,
-        &blog,
+        blog,
     );
     defer t.deinit();
 

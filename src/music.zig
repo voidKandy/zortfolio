@@ -153,7 +153,7 @@ pub const MusicInfo = struct {
 };
 
 pub fn musicHandler(ctx: *MusicInfo, a: std.mem.Allocator, _: Request, w: *std.Io.Writer) anyerror!void {
-    var t = try zemplate.Template.init(a, ctx);
+    var t = try zemplate.Template(MusicInfo).init(a, ctx.*);
     defer t.deinit();
     const render = try t.render(@embedFile("music.html"), .{});
     try w.writeAll(render);
