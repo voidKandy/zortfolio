@@ -22,6 +22,12 @@
 
     #rendered-blog header {
         display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    #rendered-blog header > span {
+        display: flex;
         flex-direction: column;
     }
 
@@ -291,8 +297,10 @@
     <div id="rendered-blog">
         <header>
             <small> {|.filename|} </small>
-            <small class="xs" id="created"></small>
-            <small class="xs" id="last-modified"></small>
+            <span>
+                <small class="xs" id="created"></small>
+                <small class="xs" id="last-modified"></small>
+            </span>
         </header>
         <script>
             renderStats({|.last_modified|}, {|.created|});

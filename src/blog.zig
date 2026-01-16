@@ -1,22 +1,20 @@
 const std = @import("std");
-const zemplate = @import("zemplate");
-const zyph = @import("zyph");
+const BlogMetadata = @import("blog_metadata").Metadata;
 const ArrayList = std.ArrayList;
 const Request = std.http.Server.Request;
+
+const zemplate = @import("zemplate");
+const zyph = @import("zyph");
+
 const BlogDirectory = zyph.cache.CachedDirectory(BlogPostInfo, "serve/blog");
 const log = std.log.scoped(.blog);
 
-const BlogMetadata = struct {
-    path: []const u8,
-    last_modified: i64,
-    created: i64,
-
-    const InfoMap =
-        std.StringHashMap(struct {
-            last_modified: i64,
-            created: i64,
-        });
-    var map: InfoMap = undefined;
+pub const StaticBlogDataHandle = struct {
+    /// Same as in tools/read_blog_post_metadata.zig
+    var INFO_MAP: std.StringHashMap(struct {
+        last_modified: i64,
+        created: i64,
+    }) = undefined;
 
     fn loadMap(a: std.mem.Allocator) !void {
         const json_bytes = @embedFile("blogsMetadata.json");
@@ -25,10 +23,10 @@ const BlogMetadata = struct {
 
         const blogs = parsed.value;
 
-        map = InfoMap.init(a);
+        INFO_MAP = .init(a);
 
         for (blogs) |item| {
-            try map.put(item.path, .{
+            try INFO_MAP.put(item.path, .{
                 .last_modified = item.last_modified,
                 .created = item.created,
             });
@@ -36,17 +34,15 @@ const BlogMetadata = struct {
 
         return;
     }
-};
 
-pub const StaticBlogData = struct {
     pub fn init(a: std.mem.Allocator) !@This() {
-        try BlogMetadata.loadMap(a);
+        try loadMap(a);
         BlogDirectory.init(a);
         return .{};
     }
-    pub fn deinit(self: @This()) void {
-        _ = self;
-        BlogMetadata.map.deinit();
+
+    pub fn deinit(_: @This()) void {
+        INFO_MAP.deinit();
         BlogDirectory.deinit();
     }
 };
@@ -60,13 +56,12 @@ pub const CurrentBlogPage = struct {
     all_blogs: []ClientsideBlogData,
 };
 
-const ClientsideBlogData =
-    struct {
-        last_modified: i64,
-        created: i64,
-        name: []u8,
-        uri_path: []u8,
-    };
+const ClientsideBlogData = struct {
+    last_modified: i64,
+    created: i64,
+    name: []u8,
+    uri_path: []u8,
+};
 
 const BlogPostInfo = struct {
     last_modified: i64,
@@ -74,9 +69,6 @@ const BlogPostInfo = struct {
     name: []u8,
     uri_path: []u8,
     file_name: []u8,
-
-    /// Currently not actually used at all, could likely be removed
-    content: []u8,
 
     fn getUriPath(name: []u8, allocator: std.mem.Allocator) ![]u8 {
         const name_cpy = try allocator.dupe(u8, name);
@@ -89,16 +81,13 @@ const BlogPostInfo = struct {
     }
 
     pub fn fromFile(dir: std.fs.Dir, path: []const u8, a: std.mem.Allocator) anyerror!@This() {
-        const map = BlogMetadata.map;
+        const map = StaticBlogDataHandle.INFO_MAP;
         const info = map.get(path) orelse return error.NoMetadata;
-        const true_last_mod = info.last_modified;
-        const created = info.created;
 
         const file = try dir.openFile(path, .{});
         defer file.close();
 
-        var split =
-            std.mem.splitBackwardsScalar(u8, path, '.');
+        var split = std.mem.splitBackwardsScalar(u8, path, '.');
         const ext = split.first();
 
         if (!std.mem.eql(u8, ext, "md")) {
@@ -127,12 +116,11 @@ const BlogPostInfo = struct {
         const uri_path = try BlogPostInfo.getUriPath(post_name, a);
 
         return @This(){
-            .last_modified = true_last_mod,
-            .created = created,
+            .last_modified = info.last_modified,
+            .created = info.created,
             .uri_path = uri_path,
             .file_name = file_name,
             .name = post_name,
-            .content = content,
         };
     }
 };
@@ -144,14 +132,14 @@ inline fn getDefaultBlogPath() ![]const u8 {
     try BlogDirectory.tryUpdate();
     const all_posts = BlogDirectory.get().map;
     var iter = all_posts.valueIterator();
-    var oldest_blog_post: ?*BlogPostInfo = null;
+    var newest_blog_post: ?*BlogPostInfo = null;
     while (iter.next()) |n| {
-        if (oldest_blog_post) |p| {
-            if (n.last_modified < p.*.last_modified) oldest_blog_post = n;
-        } else oldest_blog_post = n;
+        if (newest_blog_post) |p| {
+            if (n.created > p.*.created) newest_blog_post = n;
+        } else newest_blog_post = n;
     }
 
-    default_blog_path = oldest_blog_post.?.uri_path;
+    default_blog_path = newest_blog_post.?.uri_path;
     return default_blog_path.?;
 }
 
@@ -160,13 +148,13 @@ fn getBlogPage(allocator: std.mem.Allocator, postpath: []const u8) !?CurrentBlog
     try BlogDirectory.tryUpdate();
     const all_posts = BlogDirectory.get().map;
 
-    const post_opt = all_posts.get(std.hash_map.hashString(postpath));
+    const post = all_posts.get(std.hash_map.hashString(postpath)) orelse {
+        log.err("the name {s} does not have an associated post\n", .{postpath});
+        return error.NotFound;
+    };
 
-    // This is a workaround for the fact that zemplate doesnt have control flow
-    // we serialize the data and just pass it to the client as json
     var iter = all_posts.valueIterator();
     const blogs_data = try allocator.alloc(ClientsideBlogData, all_posts.count());
-    // defer allocator.free(blogs_data);
     var i: usize = 0;
     while (iter.next()) |p| : (i += 1) {
         blogs_data[i] = .{
@@ -181,17 +169,12 @@ fn getBlogPage(allocator: std.mem.Allocator, postpath: []const u8) !?CurrentBlog
             return (this.created > other.created);
         }
     }.lt);
-    const post = post_opt orelse {
-        log.err("the name {s} does not have an associated post\n", .{postpath});
-        return error.NotFound;
-    };
 
     log.debug(
         \\POST:
         \\  NAME: {s}
         \\  FileName: {s}
-        \\  CONTENT LEN: {d}
-    , .{ post.name, post.file_name, post.content.len });
+    , .{ post.name, post.file_name });
 
     return CurrentBlogPage{
         .path = post.uri_path,
@@ -203,7 +186,7 @@ fn getBlogPage(allocator: std.mem.Allocator, postpath: []const u8) !?CurrentBlog
     };
 }
 
-pub fn blogHandler(_: *StaticBlogData, a: std.mem.Allocator, r: Request, w: *std.Io.Writer) anyerror!void {
+pub fn blogHandler(_: *StaticBlogDataHandle, a: std.mem.Allocator, r: Request, w: *std.Io.Writer) anyerror!void {
     const parts = zyph.parseRequestParts(&r);
 
     const postpath: []const u8 = blk: {

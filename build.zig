@@ -27,14 +27,16 @@ pub fn build(b: *std.Build) void {
     const zyph = b.dependency("zyph", .{});
 
     // Executable used by github actions to dynamically create blogs metadata
+
+    const read_blog_data_module = b.createModule(.{
+        .root_source_file = b.path("tools/read_blog_posts_metadata.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
     {
         const exe = b.addExecutable(.{
             .name = "read_blog_posts_metadata",
-            .root_module = b.createModule(.{
-                .root_source_file = b.path("tools/read_blog_posts_metadata.zig"),
-                .target = target,
-                .optimize = optimize,
-            }),
+            .root_module = read_blog_data_module,
         });
         b.installArtifact(exe);
         const run_cmd = b.addRunArtifact(exe);
@@ -52,6 +54,7 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    exe.root_module.addImport("blog_metadata", read_blog_data_module);
     exe.root_module.addImport("zemplate", zemplate.module("zemplate"));
     exe.root_module.addImport("zyph", zyph.module("zyph"));
 

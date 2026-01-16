@@ -5,7 +5,7 @@ const Allocator = std.mem.Allocator;
 const BLOG_DIR = "serve/blog";
 const OUTFILE = "blogsMetadata.json";
 
-const Metadata = struct {
+pub const Metadata = struct {
     path: []const u8,
     last_modified: i64,
     created: i64 = 0,

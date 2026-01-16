@@ -1,4 +1,4 @@
-## Zemplate Type Graph Refactor
+# Zemplate Type Graph Refactor
 
 In my last post I went over how I've refactored `zemplate`'s parser to construct an AST rather than render directly from a token stream. This week I'm going to give an overview of how type introspection now works post-refactor. The old approach worked, but it had some serious problems—particularly with how it handled nested structs, which caused the type representations to balloon quickly. This new solution is much more elegant and scales way better.
 

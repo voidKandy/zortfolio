@@ -33,7 +33,7 @@ pub fn main() !void {
 
     var music_info = try music.MusicInfo.build(allocator);
     defer music_info.deinit(allocator);
-    var blg_dat = try blog.StaticBlogData.init(allocator);
+    var blg_dat = try blog.StaticBlogDataHandle.init(allocator);
     defer blg_dat.deinit();
 
     for (&[_]zyph.Server.RouteHandler{
