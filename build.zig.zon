@@ -6,8 +6,8 @@
 
     .dependencies = .{
         .zemplate = .{
-            .url = "git+https://github.com/voidKandy/zemplate?ref=staging#b5656bbf663194d27ca889bc25c872ce0b2ddb91",
-            .hash = "zemplate-1.4.2-tSKpW6UeAQChbp63XD9BQOmAt0JOOOqxp9-edAueByjh",
+            .url = "git+https://github.com/voidKandy/zemplate?ref=staging#7cb7b79736a6777f6de4946a6cfad53594dc0766",
+            .hash = "zemplate-1.4.2-tSKpW-wdAQASIncWIBHBQzIismATT1CjCC-qGMNM1-rJ",
         },
         .btzdotenv = .{
             .url = "git+https://github.com/voidKandy/btzdotenv#e23c9ca7d6b2aa783110d7113100a2965a2028e1",
