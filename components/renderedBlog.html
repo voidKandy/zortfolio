@@ -1,59 +1,63 @@
 <template id="rendered-blog-template">
-  <style>
-    :host {
-      padding: 0.5rem 1rem;
-    }
+    <style>
+        :host {
+            padding: 0.5rem 1rem;
+        }
 
-    :host header {
-      display: flex;
-      flex-direction: column;
-    }
+        :host header {
+            display: flex;
+            flex-direction: column;
+        }
 
-    :host header h1 {
-      margin-bottom: 0.1rem;
-    }
-  </style>
-  <header>
-    <h1 id="title"></h1>
-    <p id="last-modified"></p>
-  </header>
-  <md-block id="content"></md-block>
+        :host header h1 {
+            margin-bottom: 0.1rem;
+        }
+    </style>
+    <header>
+        <h1 id="title"></h1>
+        <p id="last-modified"></p>
+        <p id="created"></p>
+    </header>
+    <md-block id="content"></md-block>
 </template>
 
 <script>
-  class RenderedBlog extends HTMLElement {
-    constructor() {
-      super();
-      const template = document.getElementById('rendered-blog-template').content.cloneNode(true);
-      this.attachShadow({mode: 'open'}).appendChild(template);
-    }
-
-    connectedCallback() {
-      const title = this.shadowRoot.getElementById('title');
-      const modified = this.shadowRoot.getElementById('last-modified');
-      const content = this.shadowRoot.getElementById('content');
-
-      const name = this.getAttribute('name') || 'Untitled';
-      const lastModifiedRaw = this.getAttribute('last-modified') || '';
-      const contentMD = this.getAttribute('content') || '';
-
-      title.textContent = name;
-
-      let dateString = 'Unknown date';
-      try {
-        if (/^\d+$/.test(lastModifiedRaw)) {
-          const nanos = BigInt(lastModifiedRaw);
-          const millis = Number(nanos / 1_000_000n);
-          dateString = new Date(millis).toUTCString();
+    class RenderedBlog extends HTMLElement {
+        constructor() {
+            super();
+            const template = document
+                .getElementById("rendered-blog-template")
+                .content.cloneNode(true);
+            this.attachShadow({ mode: "open" }).appendChild(template);
         }
-      } catch (err) {
-        console.error('Invalid last-modified value:', err);
-      }
 
-      modified.textContent = dateString;
-      content.innerHTML = contentMD;
+        connectedCallback() {
+            const title = this.shadowRoot.getElementById("title");
+            const modified = this.shadowRoot.getElementById("last-modified");
+            const created = this.shadowRoot.getElementById("created");
+            const content = this.shadowRoot.getElementById("content");
+
+            const name = this.getAttribute("name") || "Untitled";
+            const lastModifiedRaw = this.getAttribute("last-modified") || "";
+            const contentMD = this.getAttribute("content") || "";
+
+            title.textContent = name;
+
+            let dateString = "Unknown date";
+            try {
+                if (/^\d+$/.test(lastModifiedRaw)) {
+                    const nanos = BigInt(lastModifiedRaw);
+                    const millis = Number(nanos / 1_000_000n);
+                    dateString = new Date(millis).toUTCString();
+                }
+            } catch (err) {
+                console.error("Invalid last-modified value:", err);
+            }
+
+            modified.textContent = dateString;
+            content.innerHTML = contentMD;
+        }
     }
-  }
 
-  customElements.define('rendered-blog', RenderedBlog);
+    customElements.define("rendered-blog", RenderedBlog);
 </script>

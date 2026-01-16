@@ -1,8 +1,7 @@
-## Zemplate AST Refactor
+# Zemplate AST Refactor
 If you’ve been keeping up with my blog posts, you’ll know that `zemplate` didn’t start out in great shape. I cut corners, made tradeoffs I probably shouldn’t have, and wrote some genuinely questionable code. In fact, the original implementation didn’t even *really* have a proper `Token` type.
 
 A little over a month ago, I refactored the tokenizer to use “real” token types. More recently, I’ve taken the next step and refactored the project again to use a “real” parser.
-
 Before this refactor, the render pipeline for a `zemplate` template looked something like this:
 
 ```
@@ -74,5 +73,3 @@ Literal expressions are only used in the context of comparisons and currently su
 
 ## Whats next
 As of writing this blog post I haven't actually gotten to write the layer between `[Abstract Syntax Tree] -> [Rendered Text]`, but I just finished getting all the needed tests passing for the AST. I wanted to wait until I had fully implemented the new refactor, but seeing as it's been just about a month since my last post, I wanted to get this out.
-
-
