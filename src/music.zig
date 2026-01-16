@@ -208,8 +208,8 @@ const MusicInfoBuilder = struct {
         const credentials = try std.fmt.allocPrint(self.allocator, "{s}:{s}", .{ client_id, client_secret });
         defer self.allocator.free(credentials);
 
-        var buffer: [1024]u8 = undefined;
-        @memset(&buffer, 0);
+        // var buffer: [1024]u8 = undefined;
+        // @memset(&buffer, 0);
 
         const encoded_length = Encoder.calcSize(credentials.len);
         const encoded_creds = try self.allocator.alloc(u8, encoded_length);
