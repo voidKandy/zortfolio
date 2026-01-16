@@ -18,7 +18,7 @@ WORKDIR /zortfolio
 COPY . .
 
 # Build the project
-RUN zig build
+RUN zig build -Dcpu=baseline -Doptimize=ReleaseFast
 
 # Default command
 CMD ["./zig-out/bin/zortfolio"]
