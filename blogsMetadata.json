@@ -1,30 +1,37 @@
 [
   {
     "path": "post_zero.md",
-    "last_modified": 1762447322000000000
+    "last_modified": 1762447322000000000,
+    "created": 1762447322000000000
   },
   {
     "path": "zemplate_ctrl_flow.md",
-    "last_modified": 1765229140774825219
+    "last_modified": 1765229140774825219,
+    "created": 1765229140774825219
   },
   {
     "path": "zemplate_refactor.md",
-    "last_modified": 1768425062783880047
+    "last_modified": 1768586411047026018,
+    "created": 1767807513000000000
   },
   {
     "path": "tour_pt1.md",
-    "last_modified": 1763055201000000000
+    "last_modified": 1763055201000000000,
+    "created": 1763055201000000000
   },
   {
     "path": "zemplate_refactorPt2.md",
-    "last_modified": 1768435572197298360
+    "last_modified": 1768580729102501999,
+    "created": 1768580729102501999
   },
   {
     "path": "tour_pt3.md",
-    "last_modified": 1764385464607786825
+    "last_modified": 1764385464607786825,
+    "created": 1764385464607786825
   },
   {
     "path": "tour_pt2.md",
-    "last_modified": 1763922095000000000
+    "last_modified": 1763922095000000000,
+    "created": 1763922095000000000
   }
 ]
