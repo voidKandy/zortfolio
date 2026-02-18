@@ -192,8 +192,7 @@ pub fn blogHandler(_: *StaticBlogDataHandle, a: std.mem.Allocator, r: Request, w
     const postpath: []const u8 = blk: {
         if (parts.query) |query| {
             log.debug("QUERY: {s}", .{query});
-            var split =
-                std.mem.splitBackwardsSequence(u8, query, "post=");
+            var split = std.mem.splitBackwardsSequence(u8, query, "post=");
             const first = split.first();
             if (std.mem.containsAtLeast(u8, first, 1, "&")) {
                 var s = std.mem.splitScalar(u8, first, '&');
