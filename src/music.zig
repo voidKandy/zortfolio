@@ -45,10 +45,10 @@ pub const SortedAlbumList = struct {
         while (self.list.pop()) |n| : (i += 1) {
             const item: *AlbumItem = @fieldParentPtr("node", n);
             arr[i] = TemplateAlbumItem{
-                .image_url = item.item.images[0].url,
-                .name = item.item.name,
-                .release_date = item.item.release_date,
-                .spotify_url = item.item.external_urls.spotify,
+                .image_url = try a.dupe(u8, item.item.images[0].url),
+                .name = try a.dupe(u8, item.item.name),
+                .release_date = try a.dupe(u8, item.item.release_date),
+                .spotify_url = try a.dupe(u8, item.item.external_urls.spotify),
             };
         }
 
@@ -140,10 +140,14 @@ pub const MusicInfo = struct {
             try builder.getAlbumsRest(uri, token.value, &all_albums_sorted);
         }
 
-        // const albums_html = try renderAlbumsHTML(allocator, &all_albums_sorted);
         const all_albums = try all_albums_sorted.toArray(allocator);
 
-        log.debug("should return music info", .{});
+        log.warn(
+            \\ should return music info: 
+            \\ album  0: 
+            \\ Name: {s}
+            \\ image_url: {s}
+        , .{ all_albums[0].name, all_albums[0].image_url });
         return MusicInfo{ .all_albums = all_albums };
     }
 

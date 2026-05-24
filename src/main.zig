@@ -20,11 +20,10 @@ pub fn main() !void {
     defer if (gpa.detectLeaks()) std.log.err("LEAKS DETECTED IN MAIN ALLOCATOR\n", .{});
 
     const allocator = gpa.allocator();
-    const cwd = std.fs.cwd();
-    var server = zyph.Server.init(allocator, try cwd.openDir("serve", .{ .iterate = true }));
+    var server = zyph.Server.init(allocator, "serve");
     defer server.deinit();
 
-    var hydration_context = try zyph.hydration_middleware.Context.init(allocator, try std.fs.cwd().openFile("pages/index.html", .{}));
+    var hydration_context = try zyph.hydration_middleware.Context.init(allocator, "components", try std.fs.cwd().openFile("pages/layout.html", .{}));
     defer hydration_context.deinit(allocator);
     try server.middlewares.put(
         zyph.hydration_middleware.NAME,

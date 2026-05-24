@@ -55,111 +55,154 @@
   }
 </style>
 
-<div style="display: flex; flex-direction:column;">
-  <div style="display: flex; flex-direction:row; flex-grow: 1; margin: 1rem; gap: 1rem;">
+<div style="display: flex; flex-direction: column">
+  <div
+    style="
+      display: flex;
+      flex-direction: row;
+      flex-grow: 1;
+      margin: 1rem;
+      gap: 1rem;
+    "
+  >
     <div class="img-container">
-      <img src="FacelessProfile.JPG" alt="Photo of Ezra">
+      <img src="FacelessProfile.JPG" alt="Photo of Ezra" />
     </div>
-    <div style="display: flex;flex-direction: column; flex-grow: 1;">
-      <h1>
-        Void Kandy
-      </h1>
-      <p>
-        Programmer, Musician, Illustrator
-      </p>
-      <div style="display:flex; flex-direction: row; gap: 1rem;">
-        <a href="https://github.com/voidKandy" target="_blank">
-          GitHub </a>
+    <div style="display: flex; flex-direction: column; flex-grow: 1">
+      <h1>Void Kandy</h1>
+      <p>Programmer, Musician, Illustrator</p>
+      <div style="display: flex; flex-direction: row; gap: 1rem">
+        <a href="https://github.com/voidKandy" target="_blank"> GitHub </a>
         <a href="mailto:voidkandy@gmail.com" target="_blank">Email</a>
       </div>
     </div>
   </div>
 
-  <div style="display: flex;flex-direction: column; margin: 1rem">
-    <h1>
-      About Me
-    </h1>
-    <md-block src="about.md">
-    </md-block>
-
+  <div style="display: flex; flex-direction: column; margin: 1rem">
+    <h1>About Me</h1>
+    <md-block src="about.md"> </md-block>
   </div>
 
   <div class="work-projects-container">
     <div class="projects-container">
-      <display-box title='Projects'>
-
-        <project-item name='zyph' link='https://github.com/voidKandy/zyph'
-          description="A hypermedia oriented web server library. Used for this site!">
+      <display-box title="Projects">
+        <project-item
+          name="zyph"
+          link="https://github.com/voidKandy/zyph"
+          description="A hypermedia oriented web server library. Used for this site!"
+        >
           <a href="https://github.com/voidKandy/zyph" target="_blank">
-            <img src="https://img.shields.io/badge/github-repo-blue?logo=github " alt="Link to repo">
+            <img
+              src="https://img.shields.io/badge/github-repo-blue?logo=github "
+              alt="Link to repo"
+            />
           </a>
         </project-item>
 
-        <project-item name='zemplate' link='https://github.com/voidKandy/zemplate'
-          description="A very basic, zero-dependency templating engine written in Zig. Also used for this site!">
+        <project-item
+          name="zemplate"
+          link="https://github.com/voidKandy/zemplate"
+          description="A very basic, zero-dependency templating engine written in Zig. Also used for this site!"
+        >
           <a href="https://github.com/voidKandy/zemplate" target="_blank">
-            <img src="https://img.shields.io/badge/github-repo-blue?logo=github " alt="Link to repo">
+            <img
+              src="https://img.shields.io/badge/github-repo-blue?logo=github "
+              alt="Link to repo"
+            />
           </a>
         </project-item>
 
-        <project-item name='knowls' link='https://github.com/voidKandy/knowls'
-          description="A TUI and LSP server that allows devs to embed knowledge sources into their dev environment">
+        <project-item
+          name="knowls"
+          link="https://github.com/voidKandy/knowls"
+          description="A TUI and LSP server that allows devs to embed knowledge sources into their dev environment"
+        >
           <a href="https://github.com/voidKandy/knowls" target="_blank">
-            <img src="https://img.shields.io/badge/github-repo-blue?logo=github " alt="Link to repo">
+            <img
+              src="https://img.shields.io/badge/github-repo-blue?logo=github "
+              alt="Link to repo"
+            />
           </a>
         </project-item>
 
-        <project-item name='seraphic' link='https://github.com/voidKandy/seraphic'
-          description="A lightweight crate for defining JSON RPC Messages using proc macros">
+        <project-item
+          name="seraphic"
+          link="https://github.com/voidKandy/seraphic"
+          description="A lightweight crate for defining JSON RPC Messages using proc macros"
+        >
           <a href="https://crates.io/crates/seraphic" target="_blank">
-            <img src="https://img.shields.io/crates/v/seraphic.svg?style=flat-square" alt="Crates.io version">
+            <img
+              src="https://img.shields.io/crates/v/seraphic.svg?style=flat-square"
+              alt="Crates.io version"
+            />
           </a>
           <a href="https://crates.io/crates/seraphic" target="_blank">
-            <img src="https://img.shields.io/crates/d/seraphic.svg?style=flat-square" alt="Download">
+            <img
+              src="https://img.shields.io/crates/d/seraphic.svg?style=flat-square"
+              alt="Download"
+            />
           </a>
         </project-item>
 
-        <project-item name='espionox' link='https://github.com/voidKandy/espionox'
-          description="A crate that makes building LLM driven applications in Rust a little bit easier">
+        <project-item
+          name="espionox"
+          link="https://github.com/voidKandy/espionox"
+          description="A crate that makes building LLM driven applications in Rust a little bit easier"
+        >
           <a href="https://crates.io/crates/epsionox" target="_blank">
-            <img src="https://img.shields.io/crates/v/espionox.svg?style=flat-square" alt="Crates.io version">
+            <img
+              src="https://img.shields.io/crates/v/espionox.svg?style=flat-square"
+              alt="Crates.io version"
+            />
           </a>
           <a href="https://crates.io/crates/espionox" target="_blank">
-            <img src="https://img.shields.io/crates/d/espionox.svg?style=flat-square" alt="Download">
+            <img
+              src="https://img.shields.io/crates/d/espionox.svg?style=flat-square"
+              alt="Download"
+            />
           </a>
         </project-item>
 
-        <project-item name='prattl' link='https://github.com/prattlOrg/prattl'
-          description="A CLI for generating transcriptions from audio quickly and easily">
+        <project-item
+          name="prattl"
+          link="https://github.com/prattlOrg/prattl"
+          description="A CLI for generating transcriptions from audio quickly and easily"
+        >
           <a href="https://github.com/prattlOrg/prattl" target="_blank">
-            <img src="https://img.shields.io/badge/github-repo-blue?logo=github " alt="Link to repo">
+            <img
+              src="https://img.shields.io/badge/github-repo-blue?logo=github "
+              alt="Link to repo"
+            />
           </a>
         </project-item>
-
       </display-box>
     </div>
 
     <div class="work-container">
-      <display-box title='Work'>
-        <work-item company='Great Basin Community Food Co-op' link="https://greatbasinfood.coop/"
-          position="Interrim Grocwell Department Leader"
-          description="Managed daily grocery operations to meet labor and budget targets while ensuring shelves remained stocked. Developed Python notebooks and tools to automate repetitive tasks, increasing efficiency and saving time. Provided leadership to maintain a positive team culture and foster collaboration."
-          startDate="March 2025" endDate="November 2025">
-        </work-item>
-        <work-item company='Deathwish Powersports' position="Full Stack Developer (Sole Contributor)" description="Developed and deployed the company's entire website, including both frontend and backend systems.
+      <display-box title="Work">
+        <work-item
+          company="Deathwish Powersports"
+          position="Full Stack Developer (Sole Contributor)"
+          description="Developed and deployed the company's entire website, including both frontend and backend systems.
           Built a self-service portal enabling clients to manage bookings independently without requiring direct
           interaction with the company.
           Managed the deployment process to ensure smooth operation and availability of the platform."
-          startDate="April 2024" endDate="July 2024">
+          startDate="April 2024"
+          endDate="July 2024"
+        >
         </work-item>
 
-        <work-item company='LoveTogether' link="https://www.love-together.com/" position="Intern Software Developer"
+        <work-item
+          company="LoveTogether"
+          link="https://www.love-together.com/"
+          position="Intern Software Developer"
           description="Implemented Figma wireframes into responsive React components, ensuring design consistency and functionality.
            Developed and integrated Square payment processing for subscription plans.
            Contributed to the frontend development of a MERN stack application, collaborating with a team of interns to deliver key features. "
-          startDate="February 2023" endDate='July 2023'>
+          startDate="February 2023"
+          endDate="July 2023"
+        >
         </work-item>
-
       </display-box>
     </div>
   </div>
