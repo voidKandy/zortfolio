@@ -5,4 +5,3 @@ Through programs like [Harvard's CS50](https://www.edx.org/learn/computer-scienc
 I have professional experience in web development on both the front and back end, and personal experience creating tools, experimenting with distributed systems, and exploring graphics programming. My journey has been entirely self-directed, guided by curiosity and the desire to understand how things work.
 
 I’m now looking for opportunities where I can bring that same drive to learn, build, and problem-solve in a collaborative environment.
-
