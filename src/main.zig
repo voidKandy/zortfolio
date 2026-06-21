@@ -13,26 +13,26 @@ pub const std_options = std.Options{
 
 const EmptyTemplate = zemplate.Template(@TypeOf(.{}));
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{
-        .thread_safe = true,
-    }){};
-    defer if (gpa.detectLeaks()) std.log.err("LEAKS DETECTED IN MAIN ALLOCATOR\n", .{});
-
-    const allocator = gpa.allocator();
-    var server = zyph.Server.init(allocator, "serve");
+pub fn main(init: std.process.Init) !void {
+    const allocator = init.arena.allocator();
+    var server = zyph.Server.init(allocator, init.io, "serve");
     defer server.deinit();
 
-    var hydration_context = try zyph.hydration_middleware.Context.init(allocator, "components", try std.fs.cwd().openFile("pages/layout.html", .{}));
+    var hydration_context = try zyph.hydration_middleware.Context.init(
+        allocator,
+        init.io,
+        "components",
+        try std.Io.Dir.cwd().openFile(init.io, "pages/layout.html", .{}),
+    );
     defer hydration_context.deinit(allocator);
     try server.middlewares.put(
         zyph.hydration_middleware.NAME,
         zyph.Middleware.init(.post, &hydration_context, &zyph.hydration_middleware.handler),
     );
 
-    var music_info = try music.MusicInfo.build(allocator);
+    var music_info = try music.MusicInfo.build(allocator, init.io, init.environ_map);
     defer music_info.deinit(allocator);
-    var blg_dat = try blog.StaticBlogDataHandle.init(allocator);
+    var blg_dat = try blog.StaticBlogDataHandle.init(allocator, init.io);
     defer blg_dat.deinit();
 
     for (&[_]zyph.Server.RouteHandler{
@@ -60,12 +60,10 @@ pub fn main() !void {
         try route_handler.addMiddlewares(.post, &.{zyph.hydration_middleware.NAME});
     }
 
-    var env_map = try std.process.getEnvMap(allocator);
-    defer env_map.deinit();
-    const port_str = env_map.get("PORT") orelse "3000";
+    const port_str = init.environ_map.get("PORT") orelse "3000";
     const port = try std.fmt.parseInt(u16, port_str, 10);
-    const addr = try std.net.Address.parseIp("0.0.0.0", port);
-    try server.startServer(addr, .{ .reuse_address = true });
+    const addr = try std.Io.net.IpAddress.parse("0.0.0.0", port);
+    try server.startServer(&addr, .{ .reuse_address = true });
 
     try server.listen();
 }

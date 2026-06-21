@@ -117,13 +117,13 @@ pub const SortedAlbumList = struct {
 pub const MusicInfo = struct {
     all_albums: []TemplateAlbumItem,
 
-    pub fn build(allocator: std.mem.Allocator) !MusicInfo {
-        var builder = try MusicInfoBuilder.init(allocator);
+    pub fn build(allocator: std.mem.Allocator, io: std.Io, environ_map: *const std.process.Environ.Map) !MusicInfo {
+        var builder = try MusicInfoBuilder.init(allocator, io);
         defer builder.deinit();
 
         var all_albums_sorted = SortedAlbumList{};
 
-        const token = try builder.getSpotifyToken();
+        const token = try builder.getSpotifyToken(environ_map);
         defer token.deinit();
         log.debug("got token\n", .{});
 
@@ -186,10 +186,11 @@ const MusicInfoBuilder = struct {
         next: ?[]u8,
     };
 
-    fn init(allocator: std.mem.Allocator) !MusicInfoBuilder {
+    fn init(allocator: std.mem.Allocator, io: std.Io) !MusicInfoBuilder {
         const client = try allocator.create(Client);
         client.* = .{
             .allocator = allocator,
+            .io = io,
         };
         return MusicInfoBuilder{
             .client = client,
@@ -203,12 +204,9 @@ const MusicInfoBuilder = struct {
 
     /// As per spotify's client credential flow:
     /// https://developer.spotify.com/documentation/web-api/tutorials/client-credentials-flow
-    fn getSpotifyToken(self: *Self) !std.json.Parsed(SpotifyToken) {
-        var env_map = try std.process.getEnvMap(self.allocator);
-        defer env_map.deinit();
-
-        const client_id = env_map.get("SPOTIFY_CLIENT_ID") orelse return error.NoClientId;
-        const client_secret = env_map.get("SPOTIFY_CLIENT_SECRET") orelse return error.NoClientSecret;
+    fn getSpotifyToken(self: *Self, environ_map: *const std.process.Environ.Map) !std.json.Parsed(SpotifyToken) {
+        const client_id = environ_map.get("SPOTIFY_CLIENT_ID") orelse return error.NoClientId;
+        const client_secret = environ_map.get("SPOTIFY_CLIENT_SECRET") orelse return error.NoClientSecret;
         const credentials = try std.fmt.allocPrint(self.allocator, "{s}:{s}", .{ client_id, client_secret });
         defer self.allocator.free(credentials);
 

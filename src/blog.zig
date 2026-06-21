@@ -16,6 +16,7 @@ const BlogDirectory = zyph.cache.CachedDirectory(struct {
 const BLOGS_PATH = "serve/blog";
 
 pub const StaticBlogDataHandle = struct {
+    io: std.Io,
     /// Pulled from a file that exists at comptime
     var INFO_MAP: std.StringHashMap(struct {
         last_modified: i64,
@@ -44,9 +45,9 @@ pub const StaticBlogDataHandle = struct {
         return;
     }
 
-    pub fn init(a: std.mem.Allocator) !@This() {
+    pub fn init(a: std.mem.Allocator, io: std.Io) !@This() {
         try loadFromFile(a);
-        BlogDirectory.init(a, BLOGS_PATH);
+        BlogDirectory.init(a, io, BLOGS_PATH);
         NAMES_MAP = .init(a);
 
         const all_posts = BlogDirectory.get().map;
@@ -64,7 +65,7 @@ pub const StaticBlogDataHandle = struct {
                     break :blk name;
                 }
 
-                const trimmed_header = std.mem.trim(u8, std.mem.trimLeft(u8, firstline, "#"), " \n");
+                const trimmed_header = std.mem.trim(u8, std.mem.trimStart(u8, firstline, "#"), " \n");
                 const name = try a.alloc(u8, trimmed_header.len);
                 @memcpy(name, trimmed_header);
                 break :blk name;
@@ -82,7 +83,9 @@ pub const StaticBlogDataHandle = struct {
             try NAMES_MAP.put(p.full_path, post_name);
         }
 
-        return .{};
+        return .{
+            .io = io,
+        };
     }
 
     pub fn deinit(_: @This()) void {
@@ -123,8 +126,8 @@ const BlogPostInfo = struct {
 };
 
 /// returned blog page needs to be freed
-fn getBlogPage(a: std.mem.Allocator, postpath: []const u8) !?CurrentBlogPage {
-    try BlogDirectory.tryUpdate();
+fn getBlogPage(a: std.mem.Allocator, io: std.Io, postpath: []const u8) !?CurrentBlogPage {
+    try BlogDirectory.tryUpdate(io);
     const all_posts = BlogDirectory.get().map;
 
     const post = all_posts.get(std.hash_map.hashString(postpath)) orelse {
@@ -168,7 +171,7 @@ fn getBlogPage(a: std.mem.Allocator, postpath: []const u8) !?CurrentBlogPage {
     };
 }
 
-pub fn blogHandler(_: *StaticBlogDataHandle, a: std.mem.Allocator, r: Request, w: *std.Io.Writer) anyerror!void {
+pub fn blogHandler(ctx: *StaticBlogDataHandle, a: std.mem.Allocator, r: Request, w: *std.Io.Writer) anyerror!void {
     const parts = zyph.parseRequestParts(&r);
 
     const postpath: []const u8 = blk: {
@@ -186,7 +189,7 @@ pub fn blogHandler(_: *StaticBlogDataHandle, a: std.mem.Allocator, r: Request, w
         }
     };
 
-    const blog = getBlogPage(a, postpath) catch |e| {
+    const blog = getBlogPage(a, ctx.io, postpath) catch |e| {
         if (e == error.NotFound) return e;
 
         log.err("failed to get blog post: {any}\n", .{e});

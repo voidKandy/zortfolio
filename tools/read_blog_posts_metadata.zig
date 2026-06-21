@@ -24,19 +24,19 @@ pub const Metadata = struct {
     }
 };
 
-pub fn main() !void {
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-    const a = arena.allocator();
+pub fn main(init: std.process.Init) !void {
+    const a = init.arena.allocator();
+    const io = init.io;
+    const cwd = std.Io.Dir.cwd();
 
-    const realpath = try std.fs.cwd().realpathAlloc(a, OUTFILE);
+    const realpath = try cwd.realPathFileAlloc(io, OUTFILE, a);
 
-    const json_bytes = try createNewFileContent(a, realpath);
+    const json_bytes = try createNewFileContent(a, io, cwd, realpath);
     var file = blk: {
-        break :blk std.fs.cwd().openFile(OUTFILE, .{
+        break :blk cwd.openFile(io, OUTFILE, .{
             .mode = .read_write,
         }) catch |e| {
-            if (e == error.FileNotFound) break :blk try std.fs.cwd().createFile(OUTFILE, .{});
+            if (e == error.FileNotFound) break :blk try cwd.createFile(io, OUTFILE, .{});
             log.err(
                 \\ Encountered unexpected error while opening file: {s}
             , .{@errorName(e)});
@@ -44,16 +44,16 @@ pub fn main() !void {
         };
     };
 
-    defer file.close();
+    defer file.close(io);
 
     log.warn(
         \\ Writing to file: {s}
     , .{realpath});
-    try file.writeAll(json_bytes);
+    try file.writeStreamingAll(io, json_bytes);
 }
 
-fn createNewFileContent(a: Allocator, real_path: []const u8) anyerror![]u8 {
-    const old_parsed = try getOutfileContent(a, real_path);
+fn createNewFileContent(a: Allocator, io: std.Io, cwd: std.Io.Dir, real_path: []const u8) anyerror![]u8 {
+    const old_parsed = try getOutfileContent(a, io, cwd, real_path);
     defer if (old_parsed) |p| p.deinit();
 
     var created_map = std.StringHashMap(i64).init(a);
@@ -67,41 +67,40 @@ fn createNewFileContent(a: Allocator, real_path: []const u8) anyerror![]u8 {
             try created_map.put(item.path, item.created);
         };
 
-    const cwd = std.fs.cwd();
-    var dir = try cwd.openDir(BLOG_DIR, .{ .iterate = true });
+    var dir = try cwd.openDir(io, BLOG_DIR, .{ .iterate = true });
     var it = dir.iterate();
 
     var files = try std.ArrayList(Metadata).initCapacity(a, 64);
 
-    while (try it.next()) |entry| {
+    while (try it.next(io)) |entry| {
         if (entry.kind != .file) continue;
         if (entry.name[0] == '.') continue;
 
-        const stat = try dir.statFile(entry.name);
+        const stat = try dir.statFile(io, entry.name, .{});
         log.warn("{s} : {d}\n", .{ entry.name, stat.mtime });
 
         const created = created_map.get(entry.name) orelse
-            @as(i64, @intCast(stat.mtime));
+            @as(i64, @intCast(stat.mtime.nanoseconds));
 
         try files.append(a, Metadata{
             .path = entry.name,
-            .last_modified = @as(i64, @intCast(stat.mtime)),
+            .last_modified = @as(i64, @intCast(stat.mtime.nanoseconds)),
             .created = created,
         });
     }
 
-    var out: std.io.Writer.Allocating = .init(a);
+    var out: std.Io.Writer.Allocating = .init(a);
     try std.json.Stringify.value(files.items, .{ .whitespace = .indent_2 }, &out.writer);
 
     const json_bytes = out.toOwnedSlice() catch @panic("out of memory");
     return json_bytes;
 }
 
-fn getOutfileContent(a: Allocator, real_path: []const u8) anyerror!?std.json.Parsed([]const Metadata) {
-    const cwd = std.fs.cwd();
-    const file = cwd.openFile(real_path, .{}) catch return null;
-    defer file.close();
-    const content = try file.readToEndAlloc(a, 2048);
+fn getOutfileContent(a: Allocator, io: std.Io, cwd: std.Io.Dir, real_path: []const u8) anyerror!?std.json.Parsed([]const Metadata) {
+    const file = cwd.openFile(io, real_path, .{}) catch return null;
+    defer file.close(io);
+    var file_reader = file.reader(io, &.{});
+    const content = try file_reader.interface.allocRemaining(a, .limited(2048));
     if (content.len == 0) {
         log.warn(
             \\ {s} is empty
