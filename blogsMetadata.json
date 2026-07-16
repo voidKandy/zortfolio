@@ -41,8 +41,13 @@
   },
   {
     "path": "vulkan_pt2.md",
-    "last_modified": 1780764191359606273,
+    "last_modified": 1780764562171287549,
     "created": 1780758825191344836
+  },
+  {
+    "path": "vulkan_pt3.md",
+    "last_modified": 1784216598557663997,
+    "created": 1784216598557663997
   },
   {
     "path": "type_smuggling.md",
