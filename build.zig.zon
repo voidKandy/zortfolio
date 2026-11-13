@@ -5,17 +5,17 @@
     .version = "1.0.0",
 
     .dependencies = .{
-        .zemplate = .{
-            .url = "git+https://github.com/voidKandy/zemplate#10e152e5a0e37c04eb9c53b243bfa1102b8ae871",
-            .hash = "zemplate-1.5.2-tSKpW89SAQAcctPfi8RgHqr6OK7ej5XgTGCCDfjP-Kqs",
-        },
         .btzdotenv = .{
             .url = "git+https://github.com/voidKandy/btzdotenv#10f3369946a80837331c760243bbe58c0e4e1ddf",
             .hash = "btzdotenv-1.0.0-eBfxN_oKAAD_5dMqUimzryBqZEqbmKL055SIVpEX1vr2",
         },
+        .zemplate = .{
+            .url = "git+https://github.com/voidKandy/zemplate#4e8703396cd80b7b5f930fb08200ff5ac002e125",
+            .hash = "zemplate-1.6.0-tSKpW_NSAQDBRbc9yywXW_23qbqywTWQptbvqvfu-VUb",
+        },
         .zyph = .{
-            .url = "git+https://github.com/voidKandy/zyph#e2f4126c4c9b44894579f60895b66c5f8cfc5154",
-            .hash = "zyph-0.2.7-z6Sw_eDHAAASVJwe36gWkO2s5V4TgSYb6u7tu4uByj8-",
+            .url = "git+https://github.com/voidKandy/zyph#20ec1c8b63985a4cd0ebc99f48596b08434df4fb",
+            .hash = "zyph-0.3.0-z6Sw_bvHAACM99l6yCAa2SLI-0DT7rcS0V60BA0dYzUt",
         },
     },
     .paths = .{
