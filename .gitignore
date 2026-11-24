@@ -6,4 +6,3 @@ tmp/
 .DS_Store
 ssl-bundle/
 zig-pkg/
-server_setup.md
