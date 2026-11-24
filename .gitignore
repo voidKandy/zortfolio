@@ -5,5 +5,4 @@ tmp/
 .env
 .DS_Store
 ssl-bundle/
-local_ssl/
 zig-pkg/

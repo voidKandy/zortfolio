@@ -14,8 +14,8 @@
             .hash = "zemplate-1.6.0-tSKpW_NSAQDBRbc9yywXW_23qbqywTWQptbvqvfu-VUb",
         },
         .zyph = .{
-            .url = "git+https://github.com/voidKandy/zyph#20ec1c8b63985a4cd0ebc99f48596b08434df4fb",
-            .hash = "zyph-0.3.0-z6Sw_bvHAACM99l6yCAa2SLI-0DT7rcS0V60BA0dYzUt",
+            .url = "git+https://github.com/voidKandy/zyph#28b3507319818570534afeee3e1d31fb91b6c16f",
+            .hash = "zyph-0.3.1-z6Sw_cfHAAD7HdDCoUYBJTIfvcdLme5QabBNvChPcUcp",
         },
     },
     .paths = .{
