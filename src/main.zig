@@ -13,39 +13,9 @@ pub const std_options = std.Options{
 
 const EmptyTemplate = zemplate.Template(@TypeOf(.{}));
 
-const Environ = enum { dev, prod };
-
-fn getCerts(map: *const std.process.Environ.Map) struct {
-    cert: []const u8,
-    key: []const u8,
-} {
-    const environ = map.get("ENVIRONMENT") orelse e: {
-        std.log.warn("ENVIRONMENT variable not set, defaulting to dev environment", .{});
-        break :e "0";
-    };
-    const dev_or_prod: Environ = @fromBackingInt(std.fmt.parseInt(@typeInfo(Environ).@"enum".tag_type, environ, 10) catch std.debug.panic(
-        "ENVIRONMENT env variable is an invalid value: '{s}'",
-        .{environ},
-    ));
-
-    return switch (dev_or_prod) {
-        .dev => .{
-            .cert = "local_ssl/localhost.crt",
-            .key = "local_ssl/localhost.key",
-        },
-        .prod => .{
-            .cert = "ssl-bundle/domain.cert.pem",
-            .key = "ssl-bundle/private.key.pem",
-        },
-    };
-}
-
 pub fn main(init: std.process.Init) !void {
     const allocator = init.arena.allocator();
     var server = zyph.Server.init(allocator, init.io, "serve");
-
-    const certs = getCerts(init.environ_map);
-    try server.withTls(init.io, certs.cert, certs.key);
     defer server.deinit();
 
     var hydration_context = try zyph.hydration_middleware.Context.init(

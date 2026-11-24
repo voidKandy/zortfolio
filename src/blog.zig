@@ -8,7 +8,7 @@ const log = std.log.scoped(.blog);
 
 const BlogDirectory = zyph.cache.CachedDirectory(struct {
     fn hash(fi: zyph.cache.FileItem) u64 {
-        log.warn("adding entry: {s}", .{fi.relative_path[1..]});
+        log.debug("adding entry: {s}", .{fi.relative_path[1..]});
         return std.hash_map.hashString(fi.relative_path[1..]);
     }
 }.hash);
@@ -197,7 +197,7 @@ pub fn blogHandler(ctx: *StaticBlogDataHandle, a: std.mem.Allocator, r: Request,
     } orelse return error.NotFound;
     if (parts.query == null) {
         const redirect = try std.fmt.allocPrint(a, "/Blog?post={s}", .{blog.path});
-        log.warn(
+        log.debug(
             \\ Redirecting to {s}
         , .{redirect});
 

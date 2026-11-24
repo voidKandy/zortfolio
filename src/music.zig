@@ -142,7 +142,7 @@ pub const MusicInfo = struct {
 
         const all_albums = try all_albums_sorted.toArray(allocator);
 
-        log.warn(
+        log.debug(
             \\ should return music info: 
             \\ album  0: 
             \\ Name: {s}
