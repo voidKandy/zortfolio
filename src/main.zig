@@ -34,7 +34,7 @@ fn getCerts(map: *const std.process.Environ.Map) struct {
             .key = "local_ssl/localhost.key",
         },
         .prod => .{
-            .cert = "ssl-bundle/domain.crt.pem",
+            .cert = "ssl-bundle/domain.cert.pem",
             .key = "ssl-bundle/private.key.pem",
         },
     };
