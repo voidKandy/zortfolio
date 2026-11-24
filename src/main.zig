@@ -42,8 +42,6 @@ fn getCerts(map: *const std.process.Environ.Map) struct {
 
 pub fn main(init: std.process.Init) !void {
     const allocator = init.arena.allocator();
-    var it = init.environ_map.iterator();
-    while (it.next()) |entry| std.debug.print("env key: '{s}'\n", .{entry.key_ptr.*});
     var server = zyph.Server.init(allocator, init.io, "serve");
 
     const certs = getCerts(init.environ_map);
