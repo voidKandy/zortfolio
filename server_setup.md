@@ -103,3 +103,83 @@ sudo systemctl reload nginx
 ```
 
 
+## Setting up systemctl
+`sudo vi /etc/systemd/system/zortfolio.service`
+
+
+```ini
+[Unit]
+Description=Zortfolio
+After=network.target
+
+[Service]
+Type=simple
+User=deploy
+WorkingDirectory=/home/deploy/zortfolio
+EnvironmentFile=/home/deploy/zortfolio/.env
+ExecStart=/home/deploy/zortfolio/zig-out/bin/zortfolio
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+```
+
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable zortfolio
+sudo systemctl start zortfolio
+```
+
+If you ever need to see live logs: `sudo journalctl -u zortfolio -f`
+
+
+## Automated deployments
+I've createdm `deploy.sh` in the root of the repo. It is only meant to be called by the vps itself and has no real use for the dev environment. All it does is sync with `dev` branch and then restart the zortfolio service.
+
+In order to make sure a password isn't prompted, we need to add the zortfolio binary to `sudoers`: `sudo visudo -f /etc/sudoers.d/zortfolio`
+and paste: `deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart zortfolio`
+
+
+**create a dedicated ssh key on the spacebook:** `ssh-keygen -t ed25519 -f ~/.ssh/zortfolio_deploy -C "github-actions-zortfolio"`
+Then, add that key to the vps:
+```bash
+cat ~/.ssh/zortfolio_deploy.pub | ssh deploy@155.138.223.118 \
+'mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys'
+```
+Double check that they key worked, the following command should connect you: `ssh -i ~/.ssh/zortfolio_deploy deploy@155.138.223.118`
+
+
+### Set up git hub side
+Add these three GitHub repository secrets under Settings → Secrets and variables → Actions:
+Secret	Value
+VPS_HOST	Your VPS IP
+VPS_USER	deploy
+VPS_SSH_KEY	Contents of ~/.ssh/zortfolio_deploy
+
+Then update the `.github/workflows/deploy.yml`
+```yml
+name: Deploy
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            /home/deploy/zortfolio/deploy.sh
+```
+
+
