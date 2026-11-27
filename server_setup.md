@@ -151,35 +151,40 @@ cat ~/.ssh/zortfolio_deploy.pub | ssh deploy@155.138.223.118 \
 Double check that they key worked, the following command should connect you: `ssh -i ~/.ssh/zortfolio_deploy deploy@155.138.223.118`
 
 
-### Set up git hub side
-Add these three GitHub repository secrets under Settings → Secrets and variables → Actions:
-Secret	Value
-VPS_HOST	Your VPS IP
-VPS_USER	deploy
-VPS_SSH_KEY	Contents of ~/.ssh/zortfolio_deploy
+### Set up gitlab side
+`VPS_KNOWN_HOSTS` and `VPS_SSH_KEY` need to be added to the ci variables from within the browser.
+`VPS_SSH_KEY` is the output of: `cat ~/.ssh/zortfolio_deploy`
+`VPS_KNOWN_HOSTS` is the output of: `ssh-keyscan -H 155.138.223.118`
+(both orun on spacebook)
 
-Then update the `.github/workflows/deploy.yml`
+Create `.gitlab-ci.yml`
 ```yml
-name: Deploy
+variables:
+    VPS_HOST:	155.138.223.118
+    VPS_USER:	deploy
 
-on:
-  push:
-    branches:
-      - dev
+stages:
+  - deploy
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+deploy:
+  stage: deploy
+  image: alpine:latest
 
-    steps:
-      - name: Deploy to VPS
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            /home/deploy/zortfolio/deploy.sh
+  before_script:
+    - apk add --no-cache openssh-client
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - cp "$VPS_SSH_KEY" ~/.ssh/id_ed25519
+    - chmod 600 ~/.ssh/id_ed25519
+    - cp "$VPS_KNOWN_HOSTS" ~/.ssh/known_hosts
+    - chmod 600 ~/.ssh/known_hosts
+
+  script:
+    - ssh "$VPS_USER@$VPS_HOST" "/home/deploy/zortfolio/deploy.sh"
+
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+
 ```
 
 
